@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package library.v1;
+
+option csharp_namespace = "Library.Contracts.V1";
+
+import "common.proto";
+
+service AnalyticsService {
+  rpc GetMostBorrowedBooks (MostBorrowedBooksRequest) returns (MostBorrowedBooksResponse);
+  rpc GetTopBorrowers      (TopBorrowersRequest)      returns (TopBorrowersResponse);
+  rpc GetReadingPace       (ReadingPaceRequest)       returns (ReadingPaceResponse);
+  rpc GetAlsoBorrowedBooks (AlsoBorrowedRequest)      returns (AlsoBorrowedResponse);
+}
+
+message MostBorrowedBooksRequest { DateRange period = 1; int32 limit = 2; }  // period optional; 0 = default limit
+
+message MostBorrowedBook {
+  int32 book_id = 1;
+  string title = 2;
+  string author = 3;
+  int32 borrow_count = 4;
+  int32 distinct_borrowers = 5;
+}
+
+message MostBorrowedBooksResponse { repeated MostBorrowedBook books = 1; }
+
+message TopBorrowersRequest { DateRange period = 1; int32 limit = 2; }  // period REQUIRED
+
+message TopBorrower {
+  int32 borrower_id = 1;
+  string full_name = 2;
+  int32 loan_count = 3;
+  int32 distinct_titles = 4;
+}
+
+message TopBorrowersResponse { repeated TopBorrower borrowers = 1; }
+
+message ReadingPaceRequest { int32 borrower_id = 1; DateRange period = 2; }  // period optional
+
+message LoanPace { int32 book_id = 1; string title = 2; int32 pages = 3; int32 days = 4; double pages_per_day = 5; }
+
+message ReadingPaceResponse {
+  int32  borrower_id = 1;
+  string full_name = 2;
+  optional double pages_per_day = 3;  // unset when there is nothing to estimate from
+  int32  completed_loans = 4;
+  int32  total_pages = 5;
+  int32  total_days = 6;
+  repeated LoanPace loans = 7;
+}
+
+message AlsoBorrowedRequest { int32 book_id = 1; DateRange period = 2; int32 limit = 3; }
+
+message AlsoBorrowedBook {
+  int32 book_id = 1;
+  string title = 2;
+  string author = 3;
+  int32 shared_borrowers = 4;  // members of the cohort who borrowed this title
+  int32 loan_count = 5;        // loans of this title by the cohort
+}
+
+message AlsoBorrowedResponse {
+  int32 book_id = 1;
+  string title = 2;
+  int32 cohort_size = 3;       // how many people borrowed the source book
+  repeated AlsoBorrowedBook books = 4;
+}

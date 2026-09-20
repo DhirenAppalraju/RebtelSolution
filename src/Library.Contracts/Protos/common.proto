@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package library.v1;
+
+option csharp_namespace = "Library.Contracts.V1";
+
+import "google/protobuf/timestamp.proto";
+
+// Half-open interval [from, to). Either bound may be unset (unbounded on that side).
+message DateRange {
+  google.protobuf.Timestamp from = 1;  // inclusive
+  google.protobuf.Timestamp to   = 2;  // exclusive
+}

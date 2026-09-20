@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!--
+      The one project that cannot hold the solution's C# 11 pin. Microsoft.AspNetCore.OpenApi's
+      XML-comment source generator emits `file` types and collection expressions, so the compiler
+      rejects its own generated code below C# 12. Hand-written code in this project still follows
+      the same explicit style; .editorconfig keeps the IDE from suggesting otherwise.
+    -->
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exactly one reference. The API cannot reach the domain or the database. -->
+    <ProjectReference Include="..\Library.Contracts\Library.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

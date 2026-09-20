@@ -1,0 +1,15 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+TestResults/
+coverage/
+artifacts/
+
+# SQLite demo database, recreated on start-up
+library.db
+*.db-shm
+*.db-wal
+*.db-journal

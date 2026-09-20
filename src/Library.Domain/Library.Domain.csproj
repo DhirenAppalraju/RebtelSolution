@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- References nothing. The dependency rule is enforced by this file staying empty. -->
+
+</Project>

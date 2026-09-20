@@ -1,0 +1,67 @@
+using Google.Protobuf;
+using Grpc.Core;
+using Grpc.Core.Interceptors;
+using Library.Api;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
+using Proto = Library.Contracts.V1;
+
+namespace Library.FunctionalTests.Api
+{
+    /// <summary>Asserted on the call context: no server is needed to prove a deadline was attached.</summary>
+    public class DeadlineInterceptorTests
+    {
+        private static readonly DateTimeOffset Now = new DateTimeOffset(2026, 6, 15, 10, 0, 0, TimeSpan.Zero);
+
+        [Fact]
+        public void AsyncUnaryCall_NoDeadlineSet_AppliesTheConfiguredDefault()
+        {
+            var seen = Invoke(new CallOptions(), deadlineSeconds: 10);
+
+            seen.ShouldBe(Now.UtcDateTime.AddSeconds(10));
+        }
+
+        [Fact]
+        public void AsyncUnaryCall_CallerSetADeadline_LeavesItAlone()
+        {
+            var explicitDeadline = Now.UtcDateTime.AddSeconds(1);
+
+            var seen = Invoke(new CallOptions(deadline: explicitDeadline), deadlineSeconds: 10);
+
+            seen.ShouldBe(explicitDeadline);
+        }
+
+        private static DateTime? Invoke(CallOptions options, int deadlineSeconds)
+        {
+            var interceptor = new DeadlineInterceptor(
+                Options.Create(new LibraryClientOptions { GrpcDeadlineSeconds = deadlineSeconds }),
+                new FakeTimeProvider(Now));
+
+            var method = new Method<Proto.GetBookRequest, Proto.Book>(
+                MethodType.Unary,
+                "library.v1.LendingService",
+                "GetBook",
+                Marshal(Proto.GetBookRequest.Parser),
+                Marshal(Proto.Book.Parser));
+
+            DateTime? seen = null;
+
+            interceptor.AsyncUnaryCall(
+                new Proto.GetBookRequest { BookId = 1 },
+                new ClientInterceptorContext<Proto.GetBookRequest, Proto.Book>(method, host: null, options),
+                (_, context) =>
+                {
+                    seen = context.Options.Deadline;
+                    return ApiHostFixture.Returns(new Proto.Book());
+                });
+
+            return seen;
+        }
+
+        private static Marshaller<T> Marshal<T>(MessageParser<T> parser)
+            where T : class, IMessage<T>
+        {
+            return Marshallers.Create(message => message.ToByteArray(), parser.ParseFrom);
+        }
+    }
+}

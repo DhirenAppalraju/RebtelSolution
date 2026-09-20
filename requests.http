@@ -1,0 +1,76 @@
+@api = http://localhost:5100
+
+### The catalogue, with availability. Start here: it shows every id you need below.
+GET {{api}}/api/books
+
+### Q1 - Most borrowed books. Expect The Hobbit 6/6, then Dune 6/5.
+GET {{api}}/api/books/most-borrowed?limit=5
+
+### Q1 in a window. The half-open window narrows Dune to 3 loans.
+GET {{api}}/api/books/most-borrowed?from=2026-01-01&to=2026-02-01
+
+### Q2 - Top borrowers in a time frame. `from` and `to` are required.
+GET {{api}}/api/borrowers/top?from=2026-01-01&to=2026-04-01&limit=5
+
+### Q2 with the upper bound moved one day. Elena's 1 April loan appears and she rises to 4/4.
+GET {{api}}/api/borrowers/top?from=2026-01-01&to=2026-04-02&limit=5
+
+### Q3 - Reading pace for Clara Diaz. Expect 115 pages per day: 1150 pages over 10 days.
+GET {{api}}/api/borrowers/3/reading-pace
+
+### Q3 for Ava in January. Two overlapping loans, not netted out: 820 over 10 days is 82.0.
+GET {{api}}/api/borrowers/1/reading-pace?from=2026-01-01&to=2026-01-12
+
+### Q3 for a member with nothing finished. `pagesPerDay` is null, not zero.
+GET {{api}}/api/borrowers/4/reading-pace?from=2026-06-01&to=2026-07-01
+
+### Q4 - What else did the borrowers of Dune borrow? Cohort of 5; The Hobbit first at 5/5.
+GET {{api}}/api/books/2/also-borrowed?limit=3
+
+### One title
+GET {{api}}/api/books/1
+
+### One borrower
+GET {{api}}/api/borrowers/3
+
+### A window with no Content-Type is a 415, not a 400: the media type is the problem.
+POST {{api}}/api/loans
+
+### A negative limit reaches the service and is rejected there, with the cap named.
+GET {{api}}/api/books/most-borrowed?limit=-1
+
+### An empty window value means "absent", so this is the all-time report.
+GET {{api}}/api/books/most-borrowed?from=&to=
+
+### Borrow Neuromancer for Farid Haddad. Returns 201 and a Location that resolves.
+POST {{api}}/api/loans
+Content-Type: application/json
+
+{ "borrowerId": 6, "bookId": 3 }
+
+### Return that loan. Use the id from the response above.
+POST {{api}}/api/loans/29/return
+
+### Every copy is out: 409, not 400. The same request may succeed later.
+POST {{api}}/api/loans
+Content-Type: application/json
+
+{ "borrowerId": 1, "bookId": 8 }
+
+### A missing window on Q2: 400, and no call is made to the service.
+GET {{api}}/api/borrowers/top
+
+### Add a title and its copies
+POST {{api}}/api/books
+Content-Type: application/json
+
+{ "title": "The Dispossessed", "author": "Ursula K. Le Guin", "pageCount": 350, "copies": 2 }
+
+### Add a borrower
+POST {{api}}/api/borrowers
+Content-Type: application/json
+
+{ "fullName": "Grace Hopper", "email": "grace.hopper@example.com" }
+
+### Liveness. Answers even when the lending service is down.
+GET {{api}}/health

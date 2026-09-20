@@ -1,0 +1,55 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,props,targets,csproj,proto,http}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+csharp_using_directive_placement = outside_namespace:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+
+# This codebase is written in a deliberately explicit style: block namespaces, ordinary
+# constructors, block bodies, switch statements. The rules below stop the IDE offering to
+# rewrite that back into the newer shorthand, so the code stays the way it reads here.
+
+csharp_style_namespace_declarations = block_scoped:suggestion
+csharp_style_prefer_top_level_statements = false:suggestion
+csharp_style_prefer_primary_constructors = false:suggestion
+
+csharp_style_expression_bodied_methods = false:suggestion
+csharp_style_expression_bodied_constructors = false:suggestion
+csharp_style_expression_bodied_operators = false:suggestion
+csharp_style_expression_bodied_properties = false:suggestion
+csharp_style_expression_bodied_indexers = false:suggestion
+csharp_style_expression_bodied_accessors = false:suggestion
+csharp_style_expression_bodied_local_functions = false:suggestion
+# Lambdas stay as they are: that arrow is not the same feature.
+csharp_style_expression_bodied_lambdas = true:suggestion
+
+dotnet_style_prefer_collection_expression = false:suggestion
+csharp_style_implicit_object_creation_when_type_is_apparent = false:suggestion
+csharp_prefer_simple_using_statement = false:suggestion
+
+csharp_style_prefer_switch_expression = false:suggestion
+csharp_style_prefer_pattern_matching = false:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = false:suggestion
+csharp_style_pattern_matching_over_is_with_cast_check = false:suggestion
+csharp_style_prefer_not_pattern = false:suggestion
+csharp_style_prefer_null_check_over_type_check = false:suggestion
+
+csharp_style_prefer_index_operator = false:suggestion
+csharp_style_prefer_range_operator = false:suggestion
+csharp_style_deconstructed_variable_declaration = false:suggestion
