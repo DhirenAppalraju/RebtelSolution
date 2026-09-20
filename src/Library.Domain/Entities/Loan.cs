@@ -2,7 +2,7 @@ using Library.Domain.Exceptions;
 
 namespace Library.Domain.Entities
 {
-    /// <summary>ReturnedAt IS NULL is the state machine; there is no status enum to drift out of step with it.</summary>
+    /// <summary>ReturnedAt IS NULL is the state machine; no status enum to drift.</summary>
     public sealed class Loan
     {
         private Loan()
@@ -15,8 +15,8 @@ namespace Library.Domain.Entities
 
         public BookCopy? BookCopy { get; private set; }
 
-        // Denormalised from BookCopy: every report groups by title, and EF cannot translate
-        // an aggregate whose operand arrives through a join inside a GroupBy. A copy belongs to one title for life.
+        // Denormalised from BookCopy: EF cannot aggregate over a join inside GroupBy.
+        // A copy belongs to one title for life.
         public int BookId { get; private set; }
 
         public Book? Book { get; private set; }

@@ -1,6 +1,6 @@
 namespace Library.Api.Contracts
 {
-    // Settable properties with a default constructor: the shape the JSON model binder expects.
+    // Settable props + default ctor: what the JSON binder needs.
     public sealed class AddBookRequest
     {
         public string? Title { get; set; }

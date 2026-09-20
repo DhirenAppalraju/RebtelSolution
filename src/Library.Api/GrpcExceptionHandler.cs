@@ -7,8 +7,8 @@ using Microsoft.Extensions.Options;
 namespace Library.Api
 {
     /// <summary>
-    /// Turns a gRPC status into an RFC 9457 problem document. The 400/409 split is the one clients act
-    /// on: 400 says fix the request, 409 says the same request may succeed later.
+    /// gRPC status to RFC 9457 problem document.
+    /// 400 = fix the request; 409 = retry later.
     /// </summary>
     public sealed partial class GrpcExceptionHandler : IExceptionHandler
     {
@@ -47,7 +47,7 @@ namespace Library.Api
             }
             else if (status == ClientClosedRequest)
             {
-                // The caller went away. Expected, and not an error anybody needs to page on.
+                // Caller went away: expected, not an error.
                 ClientLeft(_logger, context.Request.Path);
             }
             else
@@ -97,14 +97,14 @@ namespace Library.Api
         {
             switch (status)
             {
-                // The most likely demo failure is a reviewer who started one host.
+                // Likeliest cause: only one host started.
                 case StatusCodes.Status503ServiceUnavailable:
                     return $"The lending service at {_options.Value.GrpcEndpoint} is not reachable. " +
                         "Start it with `dotnet run --project src/Library.Service`.";
                 case StatusCodes.Status504GatewayTimeout:
                     return $"The lending service at {_options.Value.GrpcEndpoint} did not answer within " +
                         $"{_options.Value.GrpcDeadlineSeconds} seconds.";
-                // A defect: the cause stays server-side.
+                // Defect: cause stays server-side.
                 case StatusCodes.Status500InternalServerError:
                     return "An unexpected error occurred.";
                 default:

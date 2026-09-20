@@ -1,0 +1,55 @@
+opencollection: 1.0.0
+
+info:
+  name: Library API
+  version: "1"
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
+
+request:
+  variables:
+    - name: baseUrl
+      value: http://localhost:5100
+      description: The API host. Override it with the Local environment to point elsewhere.
+
+docs:
+  content: |-
+    # Library API
+
+    Two processes must be running before anything here answers:
+
+    ```
+    dotnet run --project src/Library.Service   # gRPC, http://localhost:5210
+    dotnet run --project src/Library.Api       # HTTP, http://localhost:5100
+    ```
+
+    `{{baseUrl}}` is a collection variable (Collection settings -> Vars), so the requests work with
+    **no environment selected**. The `Local` environment sets the same variable and is only needed
+    to point the collection at a different host.
+
+    If only the API is up, every `/api` call answers `503` with a problem document naming the
+    command that starts the lending service; `/health` still answers `200`.
+
+    Expected values in each request's Docs tab come from the seeded demo data.
+    Folders run top to bottom, and **Lending** borrows, reads, returns and then re-returns the
+    same loan, so a whole-folder run leaves the data where it found it.
+
+    If a run is interrupted part-way through **Lending**, the loan it opened stays open and the
+    next borrow answers `409` — Neuromancer has a single copy. Return the open loan, or reseed:
+    stop the service, delete `src/Library.Service/library.db*`, start it again.
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

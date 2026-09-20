@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace Library.Service.Persistence
 {
-    /// <summary>Applies the migration at start-up so the demo needs no setup. Seeding rides along inside Migrate via UseSeeding.</summary>
+    /// <summary>Migrates at start-up; seeding rides along via UseSeeding.</summary>
     public sealed partial class DatabaseInitializer : IHostedService
     {
         private readonly IServiceProvider _services;

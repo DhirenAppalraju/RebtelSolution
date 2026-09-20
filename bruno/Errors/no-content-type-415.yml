@@ -1,0 +1,29 @@
+info:
+  name: A body with no Content-Type is 415
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/loans"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "415"
+    - expression: res.body.title
+      operator: eq
+      value: Unsupported Media Type
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  A POST with no body and no `Content-Type` is `415`, not `400`: the media type is the
+  problem, and answering 400 would send a client looking at its JSON for a fault that
+  is in its headers.

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Library.IntegrationTests
 {
-    /// <summary>Counts round trips and keeps the SQL. This is what catches a materialised cohort or an N+1 that still passes on 28 rows.</summary>
+    /// <summary>Counts round trips and keeps the SQL: catches a materialised cohort or an N+1.</summary>
     public sealed class CommandCounter : DbCommandInterceptor
     {
         private readonly ConcurrentQueue<string> _texts = new ConcurrentQueue<string>();

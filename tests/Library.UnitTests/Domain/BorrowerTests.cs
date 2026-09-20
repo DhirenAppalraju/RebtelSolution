@@ -30,9 +30,8 @@ namespace Library.UnitTests.Domain
         [Fact]
         public void Create_DisplayNameForm_StoresOnlyTheAddress()
         {
-            // MailAddress accepts "Name <addr>". Storing the input verbatim would put the whole
-            // string in the Email column, where the unique index cannot see that the address
-            // inside it already belongs to somebody.
+            // MailAddress accepts "Name <addr>"; storing it verbatim would hide a duplicate
+            // address from the unique index.
             var borrower = Borrower.Create("Impostor", "Ava Chen <ava.chen@example.com>");
 
             borrower.Email.ShouldBe("ava.chen@example.com");
@@ -44,8 +43,7 @@ namespace Library.UnitTests.Domain
         [InlineData("  ava.chen@example.com  ")]
         public void Create_NormalisesTheAddress_SoTheUniqueIndexIsARealRule(string email)
         {
-            // RFC 5321 makes the local part case-sensitive; no provider treats it that way, and
-            // two members differing only by case is a support ticket rather than a feature.
+            // Local part is case-sensitive per RFC 5321, but no provider treats it so.
             Borrower.Create("A Member", email).Email.ShouldBe("ava.chen@example.com");
         }
 
@@ -64,20 +62,18 @@ namespace Library.UnitTests.Domain
         }
 
         [Theory]
-        // Display-name form: the name is stripped and only the address is kept.
+        // Display-name form: name stripped, address kept.
         [InlineData("Ava Chen <ava.chen@example.com>", "ava.chen@example.com")]
         [InlineData("spaces in@example.com", "in@example.com")]
-        // Legal per RFC 5322 even though they look wrong: no TLD, trailing dot, quoted local part.
+        // Legal per RFC 5322: no TLD, trailing dot, quoted local part.
         [InlineData("a@b", "a@b")]
         [InlineData("trailing@example.com.", "trailing@example.com.")]
         [InlineData("\"quoted local\"@example.com", "\"quoted local\"@example.com")]
         public void Create_TheBclParserIsPermissive_AndWeStoreWhatItParsed(string input, string stored)
         {
-            // Pinning the parser's real behaviour rather than a stricter one we might assume.
-            // MailAddress validates *shape*, not deliverability, and it accepts more than most
-            // people expect. That is tolerable precisely because the parsed address is what gets
-            // stored, so the unique index still sees one canonical value per member. Proving an
-            // address reaches a human is a confirmation email's job, not a regex's.
+            // Pins MailAddress's real behaviour: it validates shape, not deliverability.
+            // Tolerable because the parsed address is stored, so the index sees one canonical
+            // value per member. Reachability is a confirmation email's job.
             Borrower.Create("A Member", input).Email.ShouldBe(stored);
         }
     }

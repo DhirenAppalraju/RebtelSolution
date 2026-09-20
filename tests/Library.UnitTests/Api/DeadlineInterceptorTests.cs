@@ -6,9 +6,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Proto = Library.Contracts.V1;
 
-namespace Library.FunctionalTests.Api
+namespace Library.UnitTests.Api
 {
-    /// <summary>Asserted on the call context: no server is needed to prove a deadline was attached.</summary>
+    /// <summary>Asserted on the call context: no server needed.</summary>
     public class DeadlineInterceptorTests
     {
         private static readonly DateTimeOffset Now = new DateTimeOffset(2026, 6, 15, 10, 0, 0, TimeSpan.Zero);
@@ -52,10 +52,21 @@ namespace Library.FunctionalTests.Api
                 (_, context) =>
                 {
                     seen = context.Options.Deadline;
-                    return ApiHostFixture.Returns(new Proto.Book());
+                    return Completed(new Proto.Book());
                 });
 
             return seen;
+        }
+
+        /// <summary>An already-succeeded call; the response is never read.</summary>
+        private static AsyncUnaryCall<T> Completed<T>(T value)
+        {
+            return new AsyncUnaryCall<T>(
+                Task.FromResult(value),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { });
         }
 
         private static Marshaller<T> Marshal<T>(MessageParser<T> parser)

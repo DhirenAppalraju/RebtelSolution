@@ -18,8 +18,7 @@ namespace Library.Domain.Exceptions
 
     /// <summary>The entity does not exist. Maps to NotFound / 404.</summary>
     /// <remarks>
-    /// One constructor on purpose: every "not found" in this codebase knows the entity and the id,
-    /// so the message reads the same way on every route and nobody has to compose it by hand.
+    /// One constructor: entity + id, so the message reads the same everywhere.
     /// </remarks>
     public sealed class NotFoundException : DomainException
     {

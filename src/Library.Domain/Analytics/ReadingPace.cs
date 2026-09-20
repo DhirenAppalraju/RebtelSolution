@@ -84,10 +84,10 @@ namespace Library.Domain.Analytics
         public IReadOnlyList<LoanPace> Loans { get; }
     }
 
-    /// <summary>Pure: no I/O, no clock. "Assuming continuous reading" applied per book, per the brief.</summary>
+    /// <summary>Pure: no I/O, no clock. Continuous reading, per book.</summary>
     public static class ReadingPaceCalculator
     {
-        /// <summary>Whole days, rounded up, minimum 1: a same-day return is a day, not a divide-by-zero.</summary>
+        /// <summary>Whole days, rounded up, minimum 1: no divide-by-zero.</summary>
         public static int WholeDays(DateTimeOffset borrowedAt, DateTimeOffset returnedAt)
         {
             var span = returnedAt - borrowedAt;
@@ -120,8 +120,7 @@ namespace Library.Domain.Analytics
             var pages = paces.Sum(p => p.Pages);
             var days = paces.Sum(p => p.Days);
 
-            // Sum over sum, not the mean of per-loan paces: long books weigh proportionally
-            // and one 30-minute loan cannot wreck the figure.
+            // Sum over sum, not mean of paces: weights by length, ignores blips.
             return new ReadingPaceEstimate((double)pages / days, paces.Length, pages, days, paces);
         }
     }

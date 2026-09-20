@@ -5,8 +5,7 @@ using Library.Domain.Exceptions;
 namespace Library.Service.Grpc
 {
     /// <summary>
-    /// One place where the domain's failure vocabulary becomes gRPC status. Without it the framework's
-    /// default for an unhandled exception is Unknown, not Internal, and the message leaks.
+    /// Domain failures to gRPC status. Without it the default is Unknown, and the message leaks.
     /// </summary>
     public sealed partial class DomainExceptionInterceptor : Interceptor
     {
@@ -32,7 +31,7 @@ namespace Library.Service.Grpc
             }
             catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
             {
-                // The client went away; the framework maps this to Cancelled, which the API turns into 499.
+                // Client went away: Cancelled, which the API turns into 499.
                 throw;
             }
             catch (DomainException error)

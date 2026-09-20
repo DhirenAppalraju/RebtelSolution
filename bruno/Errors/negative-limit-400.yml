@@ -1,0 +1,35 @@
+info:
+  name: A negative limit is 400
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/books/most-borrowed?limit=-1"
+  params:
+    - name: limit
+      value: "-1"
+      type: query
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "400"
+    - expression: res.body.detail
+      operator: contains
+      value: must not be negative
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  This one is not caught at the edge: it reaches the service, which owns the rule, and
+  comes back as a gRPC `InvalidArgument` mapped to `400`.
+
+  Proof that validation lives with the logic rather than being duplicated in the API —
+  and that the gRPC status mapping works.

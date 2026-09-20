@@ -10,13 +10,12 @@ using Microsoft.Extensions.Options;
 namespace Library.Service.Application
 {
     /// <summary>
-    /// Four aggregations over one Loans fact table. Every report is a single GROUP BY that returns at
-    /// most `limit` rows; a command-count test pins the number of round trips.
+    /// Four aggregations over the Loans fact table. One GROUP BY each, at most `limit` rows;
+    /// a command-count test pins the round trips.
     /// </summary>
     /// <remarks>
-    /// Two translation rules shape every query here: group on plain columns only (COUNT(DISTINCT ...)
-    /// will not translate if the grouped source is a join), and rank before projecting into a view type
-    /// (EF cannot order by a constructor-projected property). That mapping is over at most `limit` rows.
+    /// Two EF translation rules: group on plain columns only, and rank before projecting
+    /// into a view type. Mapping runs over at most `limit` rows.
     /// </remarks>
     public sealed class AnalyticsService : IAnalyticsService
     {
@@ -112,7 +111,7 @@ namespace Library.Service.Application
                 .Where(b => b.Id == borrowerId).Select(b => b.FullName).SingleOrDefaultAsync(ct)
                 ?? throw new NotFoundException(nameof(Borrower), borrowerId);
 
-            // Narrow projection of completed loans; the arithmetic is a pure domain function.
+            // Narrow projection; arithmetic is a pure domain function.
             var completed = await _db.Loans.AsNoTracking().BorrowedWithin(period)
                 .Where(l => l.BorrowerId == borrowerId && l.ReturnedAt != null)
                 .Select(l => new { l.BookId, l.Book!.Title, l.Book!.PageCount, l.BorrowedAt, l.ReturnedAt })
@@ -126,12 +125,8 @@ namespace Library.Service.Application
         }
 
         /// <summary>
-        /// The window applies to the ranked list, not to the cohort: the cohort is everyone who has
-        /// ever borrowed this title, and the list is what that group borrowed during the window.
-        /// Windowing the cohort too would answer a narrower question - "people who read this title
-        /// *in this window*" - which on any short window collapses to a handful of readers and a
-        /// list too sparse to rank. `cohortSize` is therefore an all-time figure by design, and the
-        /// API description says so rather than leaving the reader to infer it from a surprising number.
+        /// Window applies to the ranked list, not the cohort. Cohort is all-time by design:
+        /// windowing it collapses to too few readers to rank. The API description says so.
         /// </summary>
         public async Task<AlsoBorrowedView> GetAlsoBorrowedBooksAsync(
             int bookId, DateRange period, int limit, CancellationToken ct)
@@ -141,15 +136,14 @@ namespace Library.Service.Application
                 .Select(b => new
                 {
                     b.Title,
-                    // Deliberately un-windowed - see the summary above.
+                    // Un-windowed; see the summary.
                     CohortSize = _db.Loans.Where(l => l.BookId == bookId).Select(l => l.BorrowerId).Distinct().Count(),
                 })
                 .SingleOrDefaultAsync(ct)
                 ?? throw new NotFoundException(nameof(Book), bookId);
 
-            // Left un-materialised: WHERE BorrowerId IN (SELECT ...). Materialising ships every
-            // borrower id back as a parameter on real data; the command-count test guards it.
-            // Un-windowed, and the same membership `CohortSize` counts, so the two always agree.
+            // Un-materialised: WHERE BorrowerId IN (SELECT ...). Materialising ships every id as a
+            // parameter. Same membership CohortSize counts, so the two agree.
             var cohort = _db.Loans.Where(l => l.BookId == bookId).Select(l => l.BorrowerId).Distinct();
 
             var counts = _db.Loans.AsNoTracking().BorrowedWithin(period)
@@ -187,7 +181,7 @@ namespace Library.Service.Application
             return new AlsoBorrowedView(bookId, source.Title, source.CohortSize, books);
         }
 
-        /// <summary>0 means the default; above the cap is rejected, not clamped, so the caller learns the rule.</summary>
+        /// <summary>0 means default; over the cap is rejected, not clamped.</summary>
         private int Resolve(int limit)
         {
             if (limit == 0)

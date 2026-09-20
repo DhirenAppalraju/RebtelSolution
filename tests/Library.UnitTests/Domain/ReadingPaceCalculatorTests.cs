@@ -57,7 +57,7 @@ namespace Library.UnitTests.Domain
         [Fact]
         public void Estimate_OverlappingLoans_AreNotNettedOut()
         {
-            // Ava's January: 820 pages over 4 + 6 days. Merging the intervals would give 102.5.
+            // 820 pages over 4 + 6 days; merged intervals would give 102.5.
             var estimate = ReadingPaceCalculator.Estimate(new[]
             {
                 Loan(5, "Clean Code", 400, Jan(2), Jan(6)),

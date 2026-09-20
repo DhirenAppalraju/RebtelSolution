@@ -87,8 +87,7 @@ namespace Library.FunctionalTests.Api
 
             var response = await _fixture.CreateClient().GetAsync("/api/loans/1");
 
-            // Asserting the replacement, not just the absence: a blank detail would also "not
-            // contain secret", and would be a worse answer than the generic one.
+            // Asserts the replacement, not just the absence: a blank detail would pass too, and be worse.
             var detail = await Detail(response);
 
             response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
@@ -97,11 +96,28 @@ namespace Library.FunctionalTests.Api
         }
 
         [Fact]
+        public async Task AFailureThatIsNotAGrpcStatus_FallsThroughToTheDefault500()
+        {
+            // GrpcExceptionHandler declines non-RpcExceptions: that `return false` keeps an ordinary
+            // API defect from being reported as a service status.
+            _fixture.Lending
+                .ListBooksAsync(Arg.Any<Proto.ListBooksRequest>(), Arg.Any<Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
+                .Returns(_ => throw new InvalidOperationException("connection string: secret"));
+
+            var response = await _fixture.CreateClient().GetAsync("/api/books");
+
+            response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+            response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+            // Still a problem document, still no cause in it.
+            (await response.Content.ReadAsStringAsync()).ShouldNotContain("secret");
+        }
+
+        [Fact]
         public async Task ServiceTimedOut_TellsTheCallerWhereAndForHowLong()
         {
-            // The twin of the 503 test above. The deadline is the mechanism that stops a wedged
-            // service holding requests open, so the message has to name both the endpoint and the
-            // budget - otherwise a 504 is indistinguishable from any other gateway failure.
+            // Twin of the 503 test: the message names endpoint and budget, or a 504 is
+            // indistinguishable from any other gateway failure.
             _fixture.Lending
                 .ListBooksAsync(Arg.Any<Proto.ListBooksRequest>(), Arg.Any<Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
                 .Returns(ApiHostFixture.Fails<Proto.ListBooksResponse>(StatusCode.DeadlineExceeded));
@@ -116,59 +132,9 @@ namespace Library.FunctionalTests.Api
         }
 
         [Fact]
-        public async Task Catalogue_Succeeds_AndReturnsTheBook()
-        {
-            // GET /api/books/{id} was only ever exercised through stubbed failures, so the 200
-            // path - the one every other test assumes works - was never actually run.
-            _fixture.Lending
-                .GetBookAsync(Arg.Any<Proto.GetBookRequest>(), Arg.Any<Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
-                .Returns(ApiHostFixture.Returns(new Proto.Book
-                {
-                    Id = 1,
-                    Title = "The Hobbit",
-                    Author = "J. R. R. Tolkien",
-                    PageCount = 300,
-                    TotalCopies = 3,
-                    AvailableCopies = 2,
-                }));
-
-            var response = await _fixture.CreateClient().GetAsync("/api/books/1");
-
-            response.StatusCode.ShouldBe(HttpStatusCode.OK);
-
-            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-            body.GetProperty("title").GetString().ShouldBe("The Hobbit");
-            body.GetProperty("availableCopies").GetInt32().ShouldBe(2);
-        }
-
-        [Fact]
-        public async Task Borrower_Succeeds_AndReturnsTheBorrower()
-        {
-            // GET /api/borrowers/{id} had no test at any tier: neither the controller action nor
-            // the gRPC method behind it executed anywhere in the suite.
-            _fixture.Lending
-                .GetBorrowerAsync(Arg.Any<Proto.GetBorrowerRequest>(), Arg.Any<Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
-                .Returns(ApiHostFixture.Returns(new Proto.Borrower
-                {
-                    Id = 3,
-                    FullName = "Clara Diaz",
-                    Email = "clara.diaz@example.com",
-                }));
-
-            var response = await _fixture.CreateClient().GetAsync("/api/borrowers/3");
-
-            response.StatusCode.ShouldBe(HttpStatusCode.OK);
-
-            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-            body.GetProperty("fullName").GetString().ShouldBe("Clara Diaz");
-            body.GetProperty("email").GetString().ShouldBe("clara.diaz@example.com");
-        }
-
-        [Fact]
         public async Task EveryRouteThatDeclaresA404_ActuallyProducesOne()
         {
-            // The OpenAPI test asserts these routes *declare* 404. Four of them had no test that
-            // the declaration was true. Stub every downstream call as NotFound and walk them.
+            // The OpenAPI test asserts these routes declare 404; this walks them to prove it.
             var missing = new Status(StatusCode.NotFound, "it does not exist.");
 
             _fixture.Lending

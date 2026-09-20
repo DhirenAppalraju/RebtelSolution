@@ -1,0 +1,31 @@
+info:
+  name: Return it twice
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/loans/{{loanId}}/return"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "409"
+    - expression: res.body.title
+      operator: eq
+      value: Conflict
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  The same return again: `409`, and the problem document names the timestamp of the first
+  return.
+
+  A conflict rather than a 400 — the request is well formed, it is the state of the loan
+  that makes it impossible.

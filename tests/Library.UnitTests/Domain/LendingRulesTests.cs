@@ -50,7 +50,7 @@ namespace Library.UnitTests.Domain
         [Fact]
         public void Borrow_AtTheLimitAndHoldingTheTitle_ReportsTheLimitFirst()
         {
-            // Order matters: the limit is the rule the member can act on.
+            // Order matters: report the limit, the actionable rule.
             var error = Should.Throw<ConflictException>(() =>
                 LendingRules.Borrow(1, 2, openLoanCount: 5, alreadyHoldsTitle: true, freeCopyId: null, Policy, Now));
 

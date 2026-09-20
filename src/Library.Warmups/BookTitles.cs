@@ -4,7 +4,7 @@ namespace Library.Warmups
 {
     public static class BookTitles
     {
-        // Reverses text elements so surrogate pairs and combining marks survive; title.Reverse() would not.
+        // By text element: surrogate pairs and combining marks survive; Reverse() would not.
         public static string ReverseTitle(string title)
         {
             ArgumentNullException.ThrowIfNull(title);
@@ -35,7 +35,7 @@ namespace Library.Warmups
                 return string.Empty;
             }
 
-            // checked: a huge count fails as an overflow rather than as out-of-memory.
+            // checked: overflow rather than out-of-memory.
             _ = checked(title.Length * times);
 
             return string.Concat(Enumerable.Repeat(title, times));

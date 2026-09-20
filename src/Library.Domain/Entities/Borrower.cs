@@ -33,13 +33,8 @@ namespace Library.Domain.Entities
                 throw new ValidationException("'email' must be a well-formed address of 256 characters or fewer.");
             }
 
-            // Store the parsed address, not the input. MailAddress accepts the display-name form,
-            // so "Ava Chen <ava.chen@example.com>" would otherwise be stored whole and slip past
-            // the unique index on an address that already exists.
-            //
-            // Lowercased so the index is a real uniqueness rule. RFC 5321 makes the local part
-            // case-sensitive, but no mail provider treats it that way, and two members differing
-            // only by case is a support ticket, not a feature.
+            // Store the parsed address: MailAddress accepts "Name <a@b>", which would slip past the unique index.
+            // Lowercased so that index is a real uniqueness rule.
             return new Borrower
             {
                 FullName = fullName.Trim(),

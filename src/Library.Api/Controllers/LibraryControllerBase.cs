@@ -3,12 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace Library.Api.Controllers
 {
     /// <summary>
-    /// Base for the three API controllers. It holds the one piece of validation the API owns, so the
-    /// same malformed window produces the same problem document on every route that takes one.
+    /// Controller base: shared window validation, so one problem document shape.
     /// </summary>
     public abstract class LibraryControllerBase : ControllerBase
     {
-        /// <summary>Returns a 400 problem result when the window cannot be valid, otherwise null.</summary>
+        /// <summary>400 problem result for an invalid window, else null.</summary>
         protected IActionResult? InvalidWindow(DateOnly? from, DateOnly? to, bool required)
         {
             var problem = DateRangeBinding.Invalid(from, to, required);

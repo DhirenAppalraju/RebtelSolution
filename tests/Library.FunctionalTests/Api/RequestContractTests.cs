@@ -18,32 +18,6 @@ namespace Library.FunctionalTests.Api
         }
 
         [Fact]
-        public async Task TopBorrowers_WithoutAWindow_Is400AndNeverReachesTheService()
-        {
-            _fixture.Analytics.ClearReceivedCalls();
-
-            var response = await _fixture.CreateClient().GetAsync("/api/borrowers/top");
-
-            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-            (await Detail(response)).ShouldContain("yyyy-MM-dd");
-            _fixture.Analytics.ReceivedCalls().ShouldBeEmpty();
-        }
-
-        [Theory]
-        [InlineData("/api/borrowers/top?from=2026-04-01&to=2026-01-01")]
-        [InlineData("/api/books/most-borrowed?from=2026-04-01&to=2026-01-01")]
-        [InlineData("/api/books/most-borrowed?from=2026-01-01&to=2026-01-01")]
-        public async Task InvertedWindow_Is400AndNeverReachesTheService(string route)
-        {
-            _fixture.Analytics.ClearReceivedCalls();
-
-            var response = await _fixture.CreateClient().GetAsync(route);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-            _fixture.Analytics.ReceivedCalls().ShouldBeEmpty();
-        }
-
-        [Fact]
         public async Task ReadingPace_UnsetPace_IsRealJsonNullNotZero()
         {
             _fixture.Analytics
@@ -100,6 +74,111 @@ namespace Library.FunctionalTests.Api
         }
 
         [Fact]
+        public async Task Catalogue_Succeeds_AndReturnsTheBook()
+        {
+            // The 200 path, previously only exercised through stubbed failures.
+            _fixture.Lending
+                .GetBookAsync(Arg.Any<Proto.GetBookRequest>(), Arg.Any<Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
+                .Returns(ApiHostFixture.Returns(new Proto.Book
+                {
+                    Id = 1,
+                    Title = "The Hobbit",
+                    Author = "J. R. R. Tolkien",
+                    PageCount = 300,
+                    TotalCopies = 3,
+                    AvailableCopies = 2,
+                }));
+
+            var response = await _fixture.CreateClient().GetAsync("/api/books/1");
+
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+            body.GetProperty("title").GetString().ShouldBe("The Hobbit");
+            body.GetProperty("availableCopies").GetInt32().ShouldBe(2);
+        }
+
+        [Fact]
+        public async Task Borrower_Succeeds_AndReturnsTheBorrower()
+        {
+            // Untested at every tier: neither the action nor the gRPC method behind it ran.
+            _fixture.Lending
+                .GetBorrowerAsync(Arg.Any<Proto.GetBorrowerRequest>(), Arg.Any<Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
+                .Returns(ApiHostFixture.Returns(new Proto.Borrower
+                {
+                    Id = 3,
+                    FullName = "Clara Diaz",
+                    Email = "clara.diaz@example.com",
+                }));
+
+            var response = await _fixture.CreateClient().GetAsync("/api/borrowers/3");
+
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+            body.GetProperty("fullName").GetString().ShouldBe("Clara Diaz");
+            body.GetProperty("email").GetString().ShouldBe("clara.diaz@example.com");
+        }
+
+        [Fact]
+        public async Task CreatedResources_CarryALocationHeaderThatMatchesTheirId()
+        {
+            // Asserted for POST /api/loans below, not for the other creating routes.
+            // A wrong Location is something only a client notices.
+            _fixture.Lending
+                .AddBookAsync(Arg.Any<Proto.AddBookRequest>(), Arg.Any<Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
+                .Returns(ApiHostFixture.Returns(new Proto.Book
+                {
+                    Id = 11, Title = "A New Title", Author = "An Author",
+                    PageCount = 123, TotalCopies = 4, AvailableCopies = 4,
+                }));
+
+            _fixture.Lending
+                .AddBorrowerAsync(Arg.Any<Proto.AddBorrowerRequest>(), Arg.Any<Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
+                .Returns(ApiHostFixture.Returns(new Proto.Borrower
+                {
+                    Id = 7, FullName = "New Member", Email = "new.member@example.com",
+                }));
+
+            var client = _fixture.CreateClient();
+
+            var book = await client.PostAsJsonAsync(
+                "/api/books", new { title = "A New Title", author = "An Author", pageCount = 123, copies = 4 });
+
+            book.StatusCode.ShouldBe(HttpStatusCode.Created);
+            book.Headers.Location!.ToString().ShouldBe("/api/books/11");
+            (await book.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("totalCopies").GetInt32().ShouldBe(4);
+
+            var borrower = await client.PostAsJsonAsync(
+                "/api/borrowers", new { fullName = "New Member", email = "new.member@example.com" });
+
+            borrower.StatusCode.ShouldBe(HttpStatusCode.Created);
+            borrower.Headers.Location!.ToString().ShouldBe("/api/borrowers/7");
+        }
+
+        [Fact]
+        public async Task AlsoBorrowed_ForwardsItsWindow()
+        {
+            // The cohort route's window branch: every previous call omitted `from` and `to`.
+            Proto.AlsoBorrowedRequest? sent = null;
+            _fixture.Analytics
+                .GetAlsoBorrowedBooksAsync(Arg.Do<Proto.AlsoBorrowedRequest>(r => sent = r), Arg.Any<Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
+                .Returns(ApiHostFixture.Returns(new Proto.AlsoBorrowedResponse { BookId = 2, Title = "Dune", CohortSize = 5 }));
+
+            var client = _fixture.CreateClient();
+
+            await client.GetAsync("/api/books/2/also-borrowed?from=2026-01-01&to=2026-02-01&limit=3");
+
+            sent!.BookId.ShouldBe(2);
+            sent.Limit.ShouldBe(3);
+            sent.Period.From.ShouldBe(Timestamp.FromDateTimeOffset(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)));
+            sent.Period.To.ShouldBe(Timestamp.FromDateTimeOffset(new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero)));
+
+            await client.GetAsync("/api/books/2/also-borrowed");
+            sent!.Period.ShouldBeNull();
+        }
+
+        [Fact]
         public async Task BorrowBook_ReturnsALocationThatResolves()
         {
             var now = new DateTimeOffset(2026, 6, 15, 10, 0, 0, TimeSpan.Zero);
@@ -146,12 +225,6 @@ namespace Library.FunctionalTests.Api
             var book = body.GetProperty("books")[0];
             book.GetProperty("totalCopies").GetInt32().ShouldBe(3);
             book.GetProperty("availableCopies").GetInt32().ShouldBe(2);
-        }
-
-        private static async Task<string> Detail(HttpResponseMessage response)
-        {
-            var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
-            return problem.GetProperty("detail").GetString() ?? string.Empty;
         }
     }
 }

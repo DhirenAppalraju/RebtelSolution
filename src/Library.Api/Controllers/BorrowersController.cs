@@ -53,7 +53,7 @@ namespace Library.Api.Controllers
             [FromQuery] int? limit,
             CancellationToken cancellationToken)
         {
-            // The only report whose window is required, so it is the only one rejected here.
+            // Only report with a required window.
             var problem = InvalidWindow(from, to, required: true);
             if (problem != null)
             {

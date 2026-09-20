@@ -5,8 +5,8 @@ using Microsoft.Extensions.Options;
 namespace Library.Api
 {
     /// <summary>
-    /// Without a deadline the mapped 504 is unreachable and a wedged service holds API requests open
-    /// forever. No retries: BorrowBook is not idempotent, so a retry after a timeout can lend two copies.
+    /// Deadlines make 504 reachable and stop wedged calls hanging.
+    /// No retries: BorrowBook is not idempotent.
     /// </summary>
     public sealed class DeadlineInterceptor : Interceptor
     {

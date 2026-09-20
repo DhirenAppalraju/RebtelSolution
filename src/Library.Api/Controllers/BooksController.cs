@@ -6,8 +6,7 @@ namespace Library.Api.Controllers
 {
     [ApiController]
     [Route("api/books")]
-    // Declared once for the controller: any route can be handed a malformed value, fail to reach
-    // the service, or time out waiting for it.
+    // Controller-wide: any route can get bad input, fail to reach the service, or time out.
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status504GatewayTimeout)]
@@ -58,8 +57,7 @@ namespace Library.Api.Controllers
             return Created($"/api/books/{created.Id}", created);
         }
 
-        // Declared before "{id:int}" for readability; the int constraint is what actually
-        // keeps "most-borrowed" from being read as an id.
+        // Before "{id:int}" for readability; the int constraint does the disambiguating.
 
         /// <summary>Q1: most borrowed books.</summary>
         [HttpGet("most-borrowed", Name = "GetMostBorrowedBooks")]

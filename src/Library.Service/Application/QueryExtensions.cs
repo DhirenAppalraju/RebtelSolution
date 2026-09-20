@@ -5,7 +5,7 @@ namespace Library.Service.Application
 {
     public static class QueryExtensions
     {
-        /// <summary>Every report windows on BorrowedAt, half-open: >= from and < to.</summary>
+        /// <summary>Half-open window on BorrowedAt: &gt;= from, &lt; to.</summary>
         public static IQueryable<Loan> BorrowedWithin(this IQueryable<Loan> loans, DateRange period)
         {
             if (period.From.HasValue)

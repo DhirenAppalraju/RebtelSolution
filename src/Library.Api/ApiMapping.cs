@@ -3,7 +3,7 @@ using Proto = Library.Contracts.V1;
 
 namespace Library.Api
 {
-    /// <summary>Protobuf in, public JSON out. Hand-written: a compile error beats a silently-null property.</summary>
+    /// <summary>Protobuf to public JSON. Hand-written: compile error beats silent null.</summary>
     public static class ApiMapping
     {
         public static BookResponse ToResponse(Proto.Book book)
@@ -19,7 +19,7 @@ namespace Library.Api
 
         public static LoanResponse ToResponse(Proto.Loan loan)
         {
-            // Unset means still out; the JSON contract says that with a real null.
+            // Unset means still out: null.
             DateTimeOffset? returnedAt = null;
             if (loan.ReturnedAt != null)
             {
@@ -109,7 +109,7 @@ namespace Library.Api
             return new AlsoBorrowedResponse(response.BookId, response.Title, response.CohortSize, books);
         }
 
-        // Rounding happens at the transport edge, never in the domain.
+        // Round at the edge, not in the domain.
         private static double Round(double value)
         {
             return Math.Round(value, 2, MidpointRounding.AwayFromZero);

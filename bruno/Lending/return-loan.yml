@@ -1,0 +1,30 @@
+info:
+  name: Return it
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/loans/{{loanId}}/return"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.returnedAt
+      operator: isString
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Closes the loan and puts the copy back on the shelf: `returnedAt` is now set, and the
+  catalogue's `availableCopies` for Neuromancer goes back to 1.
+
+  A return is a state change on the loan, not a new resource, so this is `200` with the
+  updated loan rather than a `201`.

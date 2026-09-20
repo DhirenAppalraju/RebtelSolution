@@ -9,7 +9,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Library.Service
 {
-    /// <summary>Also the WebApplicationFactory entry-point marker, which avoids a Program name clash with the API.</summary>
+    /// <summary>Service host; WebApplicationFactory entry-point marker.</summary>
     public sealed class ServiceHost
     {
         private ServiceHost()
@@ -20,8 +20,7 @@ namespace Library.Service
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // In code, not appsettings: a host running from another content root (the test harnesses)
-            // cannot lose it, and plaintext HTTP/2 needs the endpoint to be Http2-only.
+            // In code, not appsettings: survives another content root, and plaintext HTTP/2 needs Http2-only.
             builder.WebHost.ConfigureKestrel(k => k.ConfigureEndpointDefaults(e => e.Protocols = HttpProtocols.Http2));
 
             builder.Services.AddOptions<LendingPolicy>()
@@ -36,10 +35,10 @@ namespace Library.Service
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
-            // Runs before the registrations below, so a test host's clock wins.
+            // Before registrations below, so a test clock wins.
             configure?.Invoke(builder);
 
-            // TryAdd so a test host that registered a fake clock first keeps it.
+            // TryAdd: a fake clock registered first survives.
             builder.Services.TryAddSingleton(TimeProvider.System);
 
             var database = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
@@ -51,7 +50,7 @@ namespace Library.Service
 
                 if (database.SeedDemoData)
                 {
-                    // Both overloads: EF tooling and migration bundles call the synchronous one.
+                    // Both overloads: EF tooling calls the synchronous one.
                     options.UseSeeding((db, _) => DemoData.Seed((LibraryDbContext)db))
                            .UseAsyncSeeding((db, _, ct) => DemoData.SeedAsync((LibraryDbContext)db, ct));
                 }
@@ -62,9 +61,8 @@ namespace Library.Service
 
             builder.Services.AddGrpc(options => options.Interceptors.Add<DomainExceptionInterceptor>());
 
-            // make an orchestrator restart a process that is running perfectly well.
-            // The registered check matters: with none at all the service answers UNKNOWN rather
-            // than SERVING, and grpc_health_probe reads anything but SERVING as a failure.
+            // A registered check is required: with none, the service answers UNKNOWN, and
+            // grpc_health_probe reads anything but SERVING as a failure.
             builder.Services.AddGrpcHealthChecks()
                 .AddCheck("self", () => HealthCheckResult.Healthy("The service is running."));
             builder.Services.AddHostedService<DatabaseInitializer>();

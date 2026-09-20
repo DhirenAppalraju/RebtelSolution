@@ -1,0 +1,47 @@
+info:
+  name: Add a borrower
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/borrowers"
+  body:
+    type: json
+    data: |-
+      {
+        "fullName": "Grace Hopper",
+        "email": "{{newBorrowerEmail}}"
+      }
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Email is unique in the database, so a fixed address answers 409 on the second run.
+        // A fresh one each time keeps this request re-runnable.
+        bru.setVar("newBorrowerEmail", `grace.hopper+${Date.now()}@example.com`);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.fullName
+      operator: eq
+      value: Grace Hopper
+    - expression: res.body.id
+      operator: isNumber
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Adds a member. Answers `201` with the new borrower and a `Location` header.
+
+  Email is unique, enforced in the database, and a duplicate comes back as `409` rather
+  than a 500 — the unique-constraint violation is translated into a problem document.
+  The pre-request script generates a fresh address so this stays re-runnable; delete it
+  and run twice to see the 409.

@@ -8,6 +8,7 @@ namespace Library.IntegrationTests
     public class LendingServiceTests
     {
         private const int Hobbit = 1;
+        private const int CleanCode = 5;
         private const int Refactoring = 6;
         private const int ThinkingFastAndSlow = 8;
         private const int ProjectHailMary = 7;
@@ -58,7 +59,7 @@ namespace Library.IntegrationTests
             {
                 await using (var db = database.NewContext())
                 {
-                    // Thinking, Fast and Slow has one copy and loan 26 still holds it.
+                    // One copy, and loan 26 still holds it.
                     var error = await Should.ThrowAsync<ConflictException>(() =>
                         database.NewLendingService(db).BorrowBookAsync(1, ThinkingFastAndSlow, default));
 
@@ -203,9 +204,127 @@ namespace Library.IntegrationTests
         }
 
         [Fact]
+        public async Task Loan_Instants_SurviveTheRoundTripThroughSqlite()
+        {
+            // The only assertion that crosses the value converter: writes, drops the context, reads
+            // back. If the converter stopped saying UtcDateTimeKind, every instant would shift by the
+            // local offset and the rest of the suite, which compares differences, would stay green.
+            using (var database = LibraryDatabase.Seeded())
+            {
+                var borrowedAt = database.Clock.GetUtcNow();
+                int loanId;
+
+                await using (var writing = database.NewContext())
+                {
+                    loanId = (await database.NewLendingService(writing)
+                        .BorrowBookAsync(1, Refactoring, default)).Id;
+                }
+
+                await using (var reading = database.NewContext())
+                {
+                    var loan = await database.NewLendingService(reading).GetLoanAsync(loanId, default);
+
+                    loan.BorrowedAt.ShouldBe(borrowedAt);
+                    loan.BorrowedAt.Offset.ShouldBe(TimeSpan.Zero);
+                    loan.DueAt.ShouldBe(borrowedAt.AddDays(database.Policy.LoanPeriodDays));
+                    loan.ReturnedAt.ShouldBeNull();
+                }
+
+                database.Clock.Advance(TimeSpan.FromHours(30));
+                var returnedAt = database.Clock.GetUtcNow();
+
+                await using (var returning = database.NewContext())
+                {
+                    await database.NewLendingService(returning).ReturnBookAsync(loanId, default);
+                }
+
+                await using (var reading = database.NewContext())
+                {
+                    var loan = await database.NewLendingService(reading).GetLoanAsync(loanId, default);
+
+                    loan.ReturnedAt.ShouldBe(returnedAt);
+                    loan.ReturnedAt!.Value.Offset.ShouldBe(TimeSpan.Zero);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task TheConcurrentLoanLimit_IsTheOneRuleARaceCanStillBeat()
+        {
+            // Characterisation, not a bug report: the documented, accepted gap. The limit is checked
+            // in C# with no index behind it, so simultaneous borrows of different titles both insert.
+            // Closing it costs a serialisable transaction per borrow; noted so a fix gets noticed.
+            using (var database = LibraryDatabase.Seeded())
+            {
+                await using (var setup = database.NewContext())
+                {
+                    var lending = database.NewLendingService(setup);
+
+                    foreach (var bookId in new int[] { 1, 2, 3, 4 })
+                    {
+                        await lending.BorrowBookAsync(2, bookId, default);
+                    }
+                }
+
+                await using (var winner = database.NewContext())
+                {
+                    var now = database.Clock.GetUtcNow();
+                    var copyId = await winner.BookCopies
+                        .Where(c => c.BookId == CleanCode).OrderBy(c => c.Id).Select(c => c.Id).FirstAsync();
+
+                    // Fifth loan lands between the count of four and the insert.
+                    var fifth = new StageTheRace(async () =>
+                    {
+                        winner.Loans.Add(Loan.Open(copyId, CleanCode, 2, now, now.AddDays(21)));
+                        await winner.SaveChangesAsync();
+                    });
+
+                    await using (var loser = database.NewContext(fifth))
+                    {
+                        // No exception: different title, so no index applies.
+                        await database.NewLendingService(loser).BorrowBookAsync(2, Refactoring, default);
+
+                        fifth.Fired.ShouldBeTrue();
+                    }
+                }
+
+                await using (var db = database.NewContext())
+                {
+                    var open = await db.Loans.CountAsync(l => l.BorrowerId == 2 && l.ReturnedAt == null);
+
+                    open.ShouldBe(database.Policy.MaxConcurrentLoans + 1,
+                        "the limit is advisory under concurrency; if this now equals the limit, the gap was closed and the README should say so");
+                }
+            }
+        }
+
+        [Fact]
+        public async Task AnUnrecognisedUniqueViolation_IsStillAConflictWithAGenericMessage()
+        {
+            // The fall-through arm: a fourth unique index would hit it and still yield a 409, not a
+            // 500. Staged with an index the application does not have, the only way to reach it.
+            using (var database = LibraryDatabase.Empty())
+            {
+                await using (var db = database.NewContext())
+                {
+                    var lending = database.NewLendingService(db);
+                    await lending.AddBookAsync("A Title", "An Author", 100, 1, default);
+
+                    await db.Database.ExecuteSqlRawAsync(
+                        "CREATE UNIQUE INDEX UX_Books_Title_Staged ON Books (Title)");
+
+                    var error = await Should.ThrowAsync<ConflictException>(() =>
+                        lending.AddBookAsync("A Title", "Another Author", 100, 1, default));
+
+                    error.Message.ShouldBe("The change conflicts with a record that already exists.");
+                }
+            }
+        }
+
+        [Fact]
         public async Task LastCopyRace_IsClosedByTheIndexNotByAnIf()
         {
-            // Staged, not fired in parallel: a race tested by timing is a test that passes or fails on timing.
+            // Staged, not parallel: timing-based race tests pass or fail on timing.
             using (var database = LibraryDatabase.Seeded())
             {
                 await using (var first = database.NewContext())
@@ -215,7 +334,7 @@ namespace Library.IntegrationTests
                         var copyId = await first.BookCopies.Where(c => c.BookId == Refactoring).Select(c => c.Id).SingleAsync();
                         var now = database.Clock.GetUtcNow();
 
-                        // Both observed the copy as free before either wrote.
+                        // Both saw the copy free before either wrote.
                         (await first.Loans.AnyAsync(l => l.BookCopyId == copyId && l.ReturnedAt == null)).ShouldBeFalse();
                         (await second.Loans.AnyAsync(l => l.BookCopyId == copyId && l.ReturnedAt == null)).ShouldBeFalse();
 
@@ -236,9 +355,8 @@ namespace Library.IntegrationTests
         [Fact]
         public async Task LastCopyRace_ThroughTheService_BecomesAConflict()
         {
-            // The other half of the test above. That one proves the index fires and that
-            // DatabaseErrors maps its message; this one proves BorrowBookAsync itself turns the
-            // loser into a ConflictException - the catch in SaveAsync, which that test steps around.
+            // Other half of the test above: that one proves the index fires and DatabaseErrors maps
+            // it; this proves the catch in SaveAsync turns the loser into a ConflictException.
             using (var database = LibraryDatabase.Seeded())
             {
                 await using (var winner = database.NewContext())
@@ -247,7 +365,7 @@ namespace Library.IntegrationTests
                     var copyId = await winner.BookCopies
                         .Where(c => c.BookId == Refactoring).Select(c => c.Id).SingleAsync();
 
-                    // Runs after the service has read "copy is free" and before its insert lands.
+                    // Between the "copy is free" read and the insert.
                     var stolen = new StageTheRace(async () =>
                     {
                         winner.Loans.Add(Loan.Open(copyId, Refactoring, 1, now, now.AddDays(21)));
@@ -269,8 +387,8 @@ namespace Library.IntegrationTests
         [Fact]
         public async Task OpenTitleRace_ThroughTheService_BecomesAConflict()
         {
-            // Same staging, the other index: the competing write takes a *different* copy of the
-            // same title, so the loser's insert passes the copy index and fails (BorrowerId, BookId).
+            // Same staging, other index: competing write takes a different copy of the same title,
+            // so the loser passes the copy index and fails (BorrowerId, BookId).
             using (var database = LibraryDatabase.Seeded())
             {
                 await using (var winner = database.NewContext())
@@ -300,9 +418,8 @@ namespace Library.IntegrationTests
         [Fact]
         public async Task NonConflictDatabaseFailure_IsNotDisguisedAsAConflict()
         {
-            // The rethrow in SaveAsync. AsConflict recognises unique violations only; any other
-            // database failure has to keep its identity and become a 500, rather than being
-            // flattened into a 409 that tells the caller to retry something that cannot succeed.
+            // The rethrow in SaveAsync: AsConflict handles unique violations only, so any other
+            // failure stays a 500 rather than a 409 telling the caller to retry the impossible.
             using (var database = LibraryDatabase.Empty())
             {
                 await using (var saboteur = database.NewContext())
@@ -352,13 +469,13 @@ namespace Library.IntegrationTests
                 {
                     await using (var second = database.NewContext())
                     {
-                        // The loser loaded the loan before the winner committed, so its in-memory copy is still open.
+                        // Loser loaded before the winner committed: its copy is still open.
                         var stale = await second.Loans.SingleAsync(l => l.Id == OpenLoanOnThinking);
                         stale.IsOpen.ShouldBeTrue();
 
                         await database.NewLendingService(first).ReturnBookAsync(OpenLoanOnThinking, default);
 
-                        // UPDATE ... WHERE Id = @id AND ReturnedAt IS NULL affects zero rows.
+                        // UPDATE ... WHERE ReturnedAt IS NULL affects zero rows.
                         await Should.ThrowAsync<ConflictException>(() =>
                             database.NewLendingService(second).ReturnBookAsync(OpenLoanOnThinking, default));
                     }

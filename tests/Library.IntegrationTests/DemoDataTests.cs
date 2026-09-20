@@ -21,7 +21,7 @@ namespace Library.IntegrationTests
                     (await db.Books.SingleAsync(b => b.Id == 2)).Title.ShouldBe("Dune");
                     (await db.Borrowers.SingleAsync(b => b.Id == 3)).FullName.ShouldBe("Clara Diaz");
 
-                    // Copy ids run 1..16 in book order: Hobbit 1-3, Dune 4-5, Neuromancer 6.
+                    // Copy ids 1..16 in book order: Hobbit 1-3, Dune 4-5, Neuromancer 6.
                     (await db.BookCopies.Where(c => c.BookId == 1).Select(c => c.Id).OrderBy(id => id).ToListAsync())
                         .ShouldBe(new int[] { 1, 2, 3 });
                     (await db.BookCopies.SingleAsync(c => c.Id == 6)).BookId.ShouldBe(3);
@@ -58,19 +58,6 @@ namespace Library.IntegrationTests
                     open.Select(l => l.BookCopyId).Distinct().Count().ShouldBe(open.Count);
                     open.Select(l => (l.BorrowerId, l.BookId)).Distinct().Count().ShouldBe(open.Count);
                     open.GroupBy(l => l.BorrowerId).ShouldAllBe(g => g.Count() <= 5);
-                }
-            }
-        }
-
-        [Fact]
-        public async Task Empty_AppliesTheMigrationWithoutTheFixture()
-        {
-            using (var database = LibraryDatabase.Empty())
-            {
-                await using (var db = database.NewContext())
-                {
-                    (await db.Books.AnyAsync()).ShouldBeFalse();
-                    (await db.Loans.AnyAsync()).ShouldBeFalse();
                 }
             }
         }

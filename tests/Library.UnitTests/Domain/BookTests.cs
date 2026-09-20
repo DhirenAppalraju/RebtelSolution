@@ -16,7 +16,7 @@ namespace Library.UnitTests.Domain
                 { "A Title", new string('a', 201), 100, 1, "author" },
                 { "A Title", "An Author", 0, 1, "pageCount" },
                 { "A Title", "An Author", -1, 1, "pageCount" },
-                // The bound that keeps a later reading-pace sum from overflowing a checked int.
+                // Bound that keeps a reading-pace sum from overflowing.
                 { "A Title", "An Author", 50001, 1, "pageCount" },
                 { "A Title", "An Author", int.MaxValue, 1, "pageCount" },
                 { "A Title", "An Author", 100, 0, "copies" },
@@ -62,7 +62,7 @@ namespace Library.UnitTests.Domain
         [Fact]
         public void Create_BornWithItsCopies()
         {
-            // A title with no copy could never be lent, so the two are created together.
+            // A title with no copy cannot be lent: created together.
             var book = Book.Create("A Title", "An Author", 100, 3);
 
             book.Copies.Count.ShouldBe(3);

@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Library.Service.Persistence
 {
     /// <summary>
-    /// Stores instants as UTC DateTime. EF will not translate range comparisons on DateTimeOffset for
-    /// SQLite and every report filters on a date, so the conversion is solution-wide.
+    /// Instants stored as UTC DateTime: EF cannot range-compare DateTimeOffset on SQLite,
+    /// and every report filters on a date.
     /// </summary>
     public sealed class UtcDateTimeOffsetConverter : ValueConverter<DateTimeOffset, DateTime>
     {

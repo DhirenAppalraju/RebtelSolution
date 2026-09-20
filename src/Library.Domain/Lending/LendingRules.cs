@@ -3,7 +3,7 @@ using Library.Domain.Exceptions;
 
 namespace Library.Domain.Lending
 {
-    /// <summary>The borrow decision spans several rows, so it lives here rather than on an entity: the service gathers the facts, this decides.</summary>
+    /// <summary>Borrow decision spans rows: the service gathers facts, this decides.</summary>
     public static class LendingRules
     {
         public static Loan Borrow(

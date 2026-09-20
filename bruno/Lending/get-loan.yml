@@ -1,0 +1,32 @@
+info:
+  name: Read that loan back
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/loans/{{loanId}}"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.bookTitle
+      operator: eq
+      value: Neuromancer
+    - expression: res.body.returnedAt
+      operator: isNull
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Follows the `Location` header from the request above, using the captured `{{loanId}}`.
+
+  Run on its own and `{{loanId}}` is empty — run **Borrow a book** first, or the whole
+  folder in order.

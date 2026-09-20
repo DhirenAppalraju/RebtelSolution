@@ -40,7 +40,7 @@ namespace Library.UnitTests.Service
             var thrown = await Should.ThrowAsync<RpcException>(() =>
                 Invoke(_ => throw new InvalidOperationException("connection string: secret")));
 
-            // The framework's own default for an unhandled exception is Unknown, not Internal.
+            // The framework's default is Unknown, not Internal.
             thrown.StatusCode.ShouldBe(StatusCode.Internal);
             thrown.Status.Detail.ShouldBe("An unexpected error occurred.");
             thrown.Status.Detail.ShouldNotContain("secret");
@@ -65,10 +65,8 @@ namespace Library.UnitTests.Service
         [Fact]
         public async Task UnaryServerHandler_ClientWentAway_LetsTheCancellationThrough()
         {
-            // The client disconnected, so the work was abandoned rather than failing. Swallowing
-            // this into the catch-all below would report a 500 - and page somebody - for something
-            // that is not an error at all. The framework maps it to Cancelled, which the API
-            // turns into 499. Without this clause the same disconnect is an Internal.
+            // Client disconnect: abandoned, not failed. Without this clause it becomes an Internal
+            // 500; the framework maps it to Cancelled, which the API turns into 499.
             using (var cancelled = new CancellationTokenSource())
             {
                 await cancelled.CancelAsync();
@@ -90,9 +88,8 @@ namespace Library.UnitTests.Service
         [Fact]
         public async Task UnaryServerHandler_CancelledWithoutTheClientLeaving_IsStillAFailure()
         {
-            // The mirror case: an OperationCanceledException with the call's own token *not*
-            // cancelled is a defect somewhere downstream, not a disconnect, so it must not be
-            // dressed up as a client cancellation.
+            // Mirror case: cancellation without the call's token cancelled is a downstream defect,
+            // not a disconnect.
             var thrown = await Should.ThrowAsync<RpcException>(() =>
                 Invoke(_ => throw new OperationCanceledException("an inner timeout")));
 

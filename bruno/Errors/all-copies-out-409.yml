@@ -1,0 +1,37 @@
+info:
+  name: Borrowing a book that is all out is 409
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/loans"
+  body:
+    type: json
+    data: |-
+      {
+        "borrowerId": 1,
+        "bookId": 8
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "409"
+    - expression: res.body.detail
+      operator: contains
+      value: Every copy of book 8 is on loan
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Thinking, Fast and Slow has one copy and it is already on loan in the seeded data.
+
+  `409`, not `400`: the request is valid and the same request may well succeed tomorrow
+  when the copy comes back. Availability is state, not a malformed input.

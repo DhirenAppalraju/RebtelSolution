@@ -11,14 +11,14 @@ using Proto = Library.Contracts.V1;
 namespace Library.FunctionalTests.Api
 {
     /// <summary>
-    /// The HTTP contract with the service stubbed, which makes downstream failures trivial to provoke.
-    /// Runs in Production so the OpenAPI assertions also prove the docs are not Development-only.
+    /// HTTP contract with the service stubbed, so downstream failures are easy to provoke.
+    /// Runs in Production: proves the docs are not Development-only.
     /// </summary>
     public sealed class ApiHostFixture : WebApplicationFactory<ApiHost>
     {
         public const string GrpcEndpoint = "http://localhost:65210";
 
-        // The generated clients are virtual by design, so they substitute cleanly.
+        // Generated clients are virtual, so they substitute cleanly.
         public Proto.LendingService.LendingServiceClient Lending { get; } =
             Substitute.For<Proto.LendingService.LendingServiceClient>();
 
@@ -36,7 +36,7 @@ namespace Library.FunctionalTests.Api
                 () => { });
         }
 
-        /// <summary>A call that fails with a gRPC status, for stubbing every row of the error table.</summary>
+        /// <summary>A call failing with a gRPC status, for stubbing the error table.</summary>
         public static AsyncUnaryCall<T> Fails<T>(StatusCode code, string detail = "the service said no")
         {
             var status = new Status(code, detail);

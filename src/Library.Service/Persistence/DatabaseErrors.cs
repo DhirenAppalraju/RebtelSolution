@@ -4,12 +4,12 @@ using Microsoft.Data.Sqlite;
 
 namespace Library.Service.Persistence
 {
-    /// <summary>Provider errors are recognised in one place. One provider, so no string matching across dialects.</summary>
+    /// <summary>Provider errors recognised in one place.</summary>
     public static class DatabaseErrors
     {
         private const int SqliteConstraintUnique = 2067;
 
-        /// <summary>Turns a losing race into the 409 the caller can act on, or returns null if the error is not ours.</summary>
+        /// <summary>Lost race to a 409, or null if the error is not ours.</summary>
         public static ConflictException? AsConflict(Exception exception)
         {
             var sqlite = Find(exception);

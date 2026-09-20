@@ -6,7 +6,7 @@ using ProtoDateRange = Library.Contracts.V1.DateRange;
 
 namespace Library.Service.Grpc
 {
-    /// <summary>Hand-written both ways: generated messages carry machinery that has no place in the application layer.</summary>
+    /// <summary>Hand-written both ways: keeps generated machinery out of the application layer.</summary>
     public static class ProtoMapping
     {
         public static DomainDateRange ToDateRange(ProtoDateRange? period)
@@ -52,7 +52,7 @@ namespace Library.Service.Grpc
                 DueAt = Timestamp.FromDateTimeOffset(view.DueAt),
             };
 
-            // Left unset when still out; a message field's absence is the null.
+            // Unset when still out: absence is the null.
             if (view.ReturnedAt.HasValue)
             {
                 loan.ReturnedAt = Timestamp.FromDateTimeOffset(view.ReturnedAt.Value);
@@ -96,7 +96,7 @@ namespace Library.Service.Grpc
                 TotalDays = estimate.TotalDays,
             };
 
-            // Absence is not zero: unset when there is nothing to estimate from.
+            // Absence is not zero: unset when nothing to estimate from.
             if (estimate.PagesPerDay.HasValue)
             {
                 response.PagesPerDay = estimate.PagesPerDay.Value;

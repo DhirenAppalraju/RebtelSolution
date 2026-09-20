@@ -1,6 +1,6 @@
 namespace Library.Domain.Analytics
 {
-    /// <summary>Half-open interval [From, To). Either bound may be absent, meaning unbounded on that side.</summary>
+    /// <summary>Half-open [From, To). An absent bound is unbounded.</summary>
     public readonly struct DateRange : IEquatable<DateRange>
     {
         public DateRange(DateTimeOffset? from, DateTimeOffset? to)
@@ -38,14 +38,7 @@ namespace Library.Domain.Analytics
             return !left.Equals(right);
         }
 
-        // Half-open: From is inclusive, To is exclusive.
-        public bool Contains(DateTimeOffset instant)
-        {
-            return (!From.HasValue || instant >= From.Value)
-                && (!To.HasValue || instant < To.Value);
-        }
-
-        // Written out by hand: a value type is only a value if two equal windows compare equal.
+        // Hand-written: equal windows must compare equal.
         public bool Equals(DateRange other)
         {
             return From.Equals(other.From) && To.Equals(other.To);

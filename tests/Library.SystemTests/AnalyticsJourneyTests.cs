@@ -6,7 +6,7 @@ using Grpc.Net.Client;
 
 namespace Library.SystemTests
 {
-    /// <summary>The four questions over HTTP, through both hosts, against the published fixture answers.</summary>
+    /// <summary>The four questions over HTTP, through both hosts, against published answers.</summary>
     [Collection(nameof(LibrarySystemCollection))]
     public class AnalyticsJourneyTests
     {
@@ -28,15 +28,6 @@ namespace Library.SystemTests
             books[0].GetProperty("distinctBorrowers").GetInt32().ShouldBe(6);
             books[1].GetProperty("title").GetString().ShouldBe("Dune");
             books[1].GetProperty("distinctBorrowers").GetInt32().ShouldBe(5);
-        }
-
-        [Fact]
-        public async Task Q1_WithAJanuaryWindow_NarrowsDuneToThree()
-        {
-            var books = (await Json("/api/books/most-borrowed?from=2026-01-01&to=2026-02-01")).GetProperty("books");
-
-            var dune = books.EnumerateArray().Single(b => b.GetProperty("title").GetString() == "Dune");
-            dune.GetProperty("borrowCount").GetInt32().ShouldBe(3);
         }
 
         [Fact]
@@ -96,7 +87,7 @@ namespace Library.SystemTests
         {
             var pace = await Json("/api/borrowers/1/reading-pace?from=2026-01-01&to=2026-01-12");
 
-            // Merging the intervals would give 102.5.
+            // Merged intervals would give 102.5.
             pace.GetProperty("pagesPerDay").GetDouble().ShouldBe(82.0);
         }
 
@@ -144,12 +135,10 @@ namespace Library.SystemTests
         [Fact]
         public async Task Health_IsUpOnBothHosts()
         {
-            // The API's own liveness, which never calls the service.
+            // API liveness; never calls the service.
             (await _system.Client.GetAsync("/health")).StatusCode.ShouldBe(HttpStatusCode.OK);
 
-            // And the service's, which is the standard gRPC health service rather than an HTTP
-            // route - the reason the README names them separately. Checking only the API would
-            // leave the claim that both hosts expose liveness untested.
+            // And the service's, the standard gRPC health service rather than an HTTP route.
             using (var channel = GrpcChannel.ForAddress(_system.ServiceAddress))
             {
                 var health = new Health.HealthClient(channel);

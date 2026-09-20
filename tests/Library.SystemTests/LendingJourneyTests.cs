@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Library.SystemTests
 {
-    /// <summary>Complete user flows: every step goes over HTTP, through gRPC, to the database and back.</summary>
+    /// <summary>Full flows: HTTP to gRPC to the database and back.</summary>
     [Collection(nameof(LibraryWriteCollection))]
     public class LendingJourneyTests
     {
@@ -151,7 +151,7 @@ namespace Library.SystemTests
             var loan = await response.Content.ReadFromJsonAsync<JsonElement>();
             response.Headers.Location!.ToString().ShouldBe($"/api/loans/{loan.GetProperty("id").GetInt32()}");
 
-            // The Location resolves.
+            // Location resolves.
             (await _system.Client.GetAsync(response.Headers.Location)).StatusCode.ShouldBe(HttpStatusCode.OK);
             return loan;
         }

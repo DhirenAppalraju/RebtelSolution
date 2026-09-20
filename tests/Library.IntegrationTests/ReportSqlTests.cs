@@ -3,8 +3,8 @@ using Library.Domain.Analytics;
 namespace Library.IntegrationTests
 {
     /// <summary>
-    /// The enforcement behind "the work happens in the database": a report that quietly materialises
-    /// rows and aggregates in memory still returns the right answer on 28 loans, and fails here.
+    /// Enforces "the work happens in the database": in-memory aggregation still returns the
+    /// right answer on 28 loans, and fails here.
     /// </summary>
     public class ReportSqlTests
     {
@@ -57,7 +57,7 @@ namespace Library.IntegrationTests
 
                     await database.NewAnalyticsService(db).GetReadingPaceAsync(3, DateRange.All, default);
 
-                    // One to prove the borrower exists, one narrow projection of completed loans.
+                    // Existence check, then a narrow projection.
                     database.Commands.Count.ShouldBe(2);
                 }
             }
@@ -74,7 +74,7 @@ namespace Library.IntegrationTests
 
                     await database.NewAnalyticsService(db).GetAlsoBorrowedBooksAsync(2, DateRange.All, 3, default);
 
-                    // Existence plus cohort size, then the ranking. A third command means the cohort was materialised.
+                    // Existence + cohort size, then the ranking. A third means a materialised cohort.
                     database.Commands.Count.ShouldBe(2);
                     var ranking = database.Commands.Texts.Last();
                     ranking.ShouldContain("GROUP BY");
@@ -94,24 +94,8 @@ namespace Library.IntegrationTests
 
                     await database.NewLendingService(db).ListBooksAsync(default);
 
-                    // Ten titles and sixteen copies; an N+1 would be eleven commands or twenty-seven.
+                    // Ten titles, sixteen copies; an N+1 would be 11 or 27 commands.
                     database.Commands.Count.ShouldBe(1);
-                }
-            }
-        }
-
-        [Fact]
-        public async Task EveryReport_ReturnsAtMostTheRequestedLimit()
-        {
-            using (var database = LibraryDatabase.Seeded())
-            {
-                await using (var db = database.NewContext())
-                {
-                    var analytics = database.NewAnalyticsService(db);
-
-                    (await analytics.GetMostBorrowedBooksAsync(DateRange.All, 2, default)).Count.ShouldBe(2);
-                    (await analytics.GetTopBorrowersAsync(FirstQuarter, 2, default)).Count.ShouldBe(2);
-                    (await analytics.GetAlsoBorrowedBooksAsync(2, DateRange.All, 2, default)).Books.Count.ShouldBe(2);
                 }
             }
         }

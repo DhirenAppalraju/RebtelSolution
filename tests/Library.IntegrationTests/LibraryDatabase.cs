@@ -10,8 +10,8 @@ using Microsoft.Extensions.Time.Testing;
 namespace Library.IntegrationTests
 {
     /// <summary>
-    /// A real SQLite engine on one in-memory connection, with the schema created by the migration:
-    /// "the migration applies cleanly to an empty database" is proven by every test that uses this.
+    /// Real SQLite on one in-memory connection, schema built by the migration, so every test
+    /// proves the migration applies cleanly.
     /// </summary>
     public sealed class LibraryDatabase : IDisposable
     {
@@ -48,8 +48,7 @@ namespace Library.IntegrationTests
         }
 
         /// <summary>
-        /// Extra interceptors let a test stage a competing write at an exact point inside the code
-        /// under test - see <see cref="StageTheRace"/>.
+        /// Extra interceptors stage a competing write mid-call - see <see cref="StageTheRace"/>.
         /// </summary>
         public LibraryDbContext NewContext(params IInterceptor[] extra)
         {

@@ -72,7 +72,7 @@ namespace Library.Service.Application
                 .Where(b => b.Id == bookId).Select(b => b.Title).SingleOrDefaultAsync(ct)
                 ?? throw new NotFoundException(nameof(Book), bookId);
 
-            // Both multi-row facts in one pass over the borrower's open loans.
+            // Both multi-row facts in one pass.
             var held = await _db.Loans.AsNoTracking()
                 .Where(l => l.BorrowerId == borrowerId && l.ReturnedAt == null)
                 .Select(l => l.BookId)
@@ -84,12 +84,10 @@ namespace Library.Service.Application
                 .Select(c => (int?)c.Id)
                 .FirstOrDefaultAsync(ct);
 
-            //
-            // The concurrent-loan limit is the one rule with no database backstop. Two simultaneous
-            // borrows of *different* titles both read the same `held.Count` and both insert: neither
-            // filtered unique index covers that pair, so a member can finish one over the limit.
-            // Accepted, bounded and benign - closing it costs a serialisable transaction on every
-            // borrow. The last-copy and one-title-per-borrower races ARE closed, by the indexes.
+            // Concurrent-loan limit has no database backstop: simultaneous borrows of different
+            // titles all read the same held.Count, so a burst of n can overshoot to n titles.
+            // Accepted; closing it costs a serialisable transaction per borrow. Last-copy and
+            // one-title-per-borrower races are closed by the indexes.
             var loan = LendingRules.Borrow(
                 borrowerId,
                 bookId,
@@ -121,7 +119,7 @@ namespace Library.Service.Application
             }
             catch (DbUpdateConcurrencyException)
             {
-                // The concurrency token matched zero rows: someone else returned it first.
+                // Concurrency token matched no rows: already returned.
                 throw new ConflictException($"Loan {loanId} was already returned.");
             }
 
@@ -139,8 +137,7 @@ namespace Library.Service.Application
                 ?? throw new NotFoundException(nameof(Loan), loanId);
         }
 
-        // Filter and order before projecting: EF cannot translate a predicate or an ordering
-        // that reads a property off a constructor-projected type.
+        // Filter and order before projecting: EF cannot read a constructor-projected property.
         private IQueryable<BookView> BookViews(IQueryable<Book> books)
         {
             return books.Select(b => new BookView(

@@ -4,7 +4,7 @@ namespace Library.Service.Persistence
     {
         public const string SectionName = "Database";
 
-        /// <summary>Apply migrations (and seed) at start-up, so the demo needs no setup.</summary>
+        /// <summary>Migrate and seed at start-up: no setup needed.</summary>
         public bool MigrateOnStartup { get; set; } = true;
 
         public bool SeedDemoData { get; set; } = true;

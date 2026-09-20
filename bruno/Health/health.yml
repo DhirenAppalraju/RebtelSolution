@@ -1,0 +1,31 @@
+info:
+  name: Liveness
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/health"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.status
+      operator: eq
+      value: healthy
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Answers `200` even when the lending service is down — it reports that the API host is
+  up, not that the whole system is well.
+
+  Handy first call when every `/api` request is answering 503: a healthy `/health` with
+  503s elsewhere means the API is fine and `Library.Service` is not running.

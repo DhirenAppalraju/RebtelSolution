@@ -1,6 +1,6 @@
 namespace Library.Domain.Entities
 {
-    /// <summary>Exists for its identity: a loan points at a physical item, which is what makes one open loan per copy enforceable.</summary>
+    /// <summary>Identity only: a loan points at a physical item, so one open loan per copy is enforceable.</summary>
     public sealed class BookCopy
     {
         private BookCopy()

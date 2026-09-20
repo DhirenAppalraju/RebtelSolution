@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Library.Service.Persistence
 {
     /// <summary>
-    /// Hand-designed, not random: every question has an answer a reviewer can check on paper, and the
-    /// README publishes those answers. Idempotent, so it is safe on every start-up.
+    /// Hand-designed, not random: answers are checkable on paper and published in the README.
+    /// Idempotent, so safe on every start-up.
     /// </summary>
     public static class DemoData
     {
@@ -40,7 +40,7 @@ namespace Library.Service.Persistence
             AddLoans(db);
         }
 
-        // Page counts are round approximations for the demo.
+        // Page counts are demo approximations.
         private static void AddBooks(LibraryDbContext db)
         {
             (int Id, string Title, string Author, int Pages, int Copies)[] books = new (int Id, string Title, string Author, int Pages, int Copies)[]
@@ -64,7 +64,7 @@ namespace Library.Service.Persistence
                 db.Books.Add(book);
                 SetId(db, book, id);
 
-                // SQLite accepts explicit values for INTEGER PRIMARY KEY; the ids are asserted by a test.
+                // SQLite allows explicit INTEGER PRIMARY KEY values; a test asserts the ids.
                 foreach (var copy in book.Copies)
                 {
                     SetId(db, copy, copyId++);
@@ -94,7 +94,7 @@ namespace Library.Service.Persistence
 
         private static void AddLoans(LibraryDbContext db)
         {
-            // Id, borrower, book, copy, borrowed (month, day, hour), returned (null = still out).
+            // Id, borrower, book, copy, borrowed (M, D, H), returned (null = still out).
             (int Id, int Borrower, int Book, int Copy, (int M, int D, int H) From, (int M, int D, int H)? To)[] loans = new (int Id, int Borrower, int Book, int Copy, (int M, int D, int H) From, (int M, int D, int H)? To)[]
             {
                 (1, 6, 1, 3, (1, 2, 10), (1, 4, 10)),

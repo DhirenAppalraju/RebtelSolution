@@ -5,14 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 namespace Library.Api
 {
     /// <summary>
-    /// The API validates only what only it can see: the shape of the window. Whether a window is
-    /// required, and what a limit may be, is the service's rule and is enforced once, there.
+    /// Window shape and presence, validated here to save a round trip. `limit` is the service's rule.
     /// </summary>
     public static class DateRangeBinding
     {
         public const string Format = "`from` and `to` are ISO dates (`yyyy-MM-dd`); the window is half-open, `[from, to)`.";
 
-        /// <summary>Null when both bounds are absent, so the field is left unset and the service reads it as all time.</summary>
+        /// <summary>Null when both bounds absent: unset means all time.</summary>
         public static DateRange? ToProto(DateOnly? from, DateOnly? to)
         {
             if (!from.HasValue && !to.HasValue)
@@ -35,7 +34,7 @@ namespace Library.Api
             return range;
         }
 
-        /// <summary>Returns a problem when the window cannot be valid, so no gRPC call is made.</summary>
+        /// <summary>Problem for an invalid window; no gRPC call made.</summary>
         public static ProblemDetails? Invalid(DateOnly? from, DateOnly? to, bool required)
         {
             if (required && (!from.HasValue || !to.HasValue))

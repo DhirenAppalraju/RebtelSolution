@@ -48,7 +48,7 @@ namespace Library.Api.Controllers
             return Ok(ApiMapping.ToResponse(loan));
         }
 
-        // POST, not PATCH: returning is an action with rules, not a field assignment.
+        // POST, not PATCH: an action with rules, not a field set.
 
         /// <summary>Return a book.</summary>
         [HttpPost("{id:int}/return", Name = "ReturnBook")]

@@ -5,7 +5,7 @@ using Proto = Library.Contracts.V1;
 
 namespace Library.Api
 {
-    /// <summary>Also the WebApplicationFactory entry-point marker, which avoids a Program name clash with the service.</summary>
+    /// <summary>API host; WebApplicationFactory entry-point marker.</summary>
     public sealed class ApiHost
     {
         private ApiHost()
@@ -28,7 +28,7 @@ namespace Library.Api
             builder.Services.AddExceptionHandler<GrpcExceptionHandler>();
             builder.Services.AddOpenApi(options => options.AddOperationTransformer((operation, context, _) =>
             {
-                // The one report whose window is not optional; the document should say so.
+                // Top borrowers: window is required.
                 if (context.Description.RelativePath == "api/borrowers/top" && operation.Parameters != null)
                 {
                     foreach (var parameter in operation.Parameters.OfType<OpenApiParameter>()
@@ -41,7 +41,7 @@ namespace Library.Api
                 return Task.CompletedTask;
             }));
 
-            // Runs before the registrations below, so a test host's clock or endpoint wins.
+            // Before registrations below, so test overrides win.
             if (configure != null)
             {
                 configure(builder);
@@ -63,11 +63,10 @@ namespace Library.Api
 
             app.UseExceptionHandler();
 
-            // Makes a bare 404 from an unmatched route a problem document too.
+            // Unmatched routes get a problem document.
             app.UseStatusCodePages();
 
-            // Every environment: security is out of scope by the brief, and hiding the docs from a
-            // reviewer running a published build costs more than it protects.
+            // Docs in every environment: security out of scope.
             app.MapOpenApi();
             app.MapScalarApiReference("/docs", options => options.WithTitle("Library API"));
 

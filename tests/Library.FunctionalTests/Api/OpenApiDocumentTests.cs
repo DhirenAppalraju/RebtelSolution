@@ -5,9 +5,8 @@ using System.Text.Json;
 namespace Library.FunctionalTests.Api
 {
     /// <summary>
-    /// The route table in the README claims certain statuses. These assertions are what stop the table
-    /// and the code from drifting apart. The fixture runs in Production, so they also prove the
-    /// document is not Development-only.
+    /// Keeps the README's route table and the code from drifting. The fixture runs in
+    /// Production, so the document is proven not to be Development-only.
     /// </summary>
     public class OpenApiDocumentTests : IClassFixture<ApiHostFixture>
     {
@@ -108,7 +107,7 @@ namespace Library.FunctionalTests.Api
 
     internal static class OptionalAssertions
     {
-        /// <summary>OpenAPI may omit `required` entirely or emit false; both mean optional.</summary>
+        /// <summary>OpenAPI may omit `required` or emit false; both mean optional.</summary>
         public static void ShouldBeFalse_Or(this bool present, JsonElement required)
         {
             if (present)

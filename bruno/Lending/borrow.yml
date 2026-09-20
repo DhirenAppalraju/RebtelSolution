@@ -1,0 +1,56 @@
+info:
+  name: Borrow a book
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/loans"
+  body:
+    type: json
+    data: |-
+      {
+        "borrowerId": 6,
+        "bookId": 3
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.bookTitle
+      operator: eq
+      value: Neuromancer
+    - expression: res.body.borrowerName
+      operator: eq
+      value: Farid Haddad
+    - expression: res.body.returnedAt
+      operator: isNull
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.id
+        method: jsonq
+      variable:
+        name: loanId
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Farid Haddad borrows Neuromancer. Answers `201` with a `Location` header that resolves,
+  and the loan id is captured into `{{loanId}}` for the three requests below — no
+  copying ids by hand.
+
+  `dueAt` is 21 days out, from `Lending:LoanPeriodDays` in the service's appsettings.
+  `returnedAt` is null while the book is out.
+
+  Neuromancer has a single copy, so running this twice without returning gives the 409
+  from **Errors**. Run the whole folder and it ends where it started.

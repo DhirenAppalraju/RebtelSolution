@@ -1,0 +1,41 @@
+info:
+  name: Q3 with nothing finished
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/borrowers/4/reading-pace?from=2026-06-01&to=2026-07-01"
+  params:
+    - name: from
+      value: 2026-06-01
+      type: query
+    - name: to
+      value: 2026-07-01
+      type: query
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.pagesPerDay
+      operator: isNull
+    - expression: res.body.completedLoans
+      operator: eq
+      value: "0"
+    - expression: res.body.loans
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  A window in which Dmitri Volkov returned nothing.
+
+  `pagesPerDay` is **null**, not 0: no evidence is not the same as a pace of zero, and a
+  client that averages these must be able to tell the difference.

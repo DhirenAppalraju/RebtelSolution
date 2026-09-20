@@ -4,7 +4,7 @@ using Library.Service.Application;
 
 namespace Library.Service.Grpc
 {
-    /// <summary>Thin facade: unwrap the request, call the application service, map the result. Rules live deeper.</summary>
+    /// <summary>Thin facade: unwrap, call the service, map the result.</summary>
     public sealed class LendingGrpcService : Contracts.V1.LendingService.LendingServiceBase
     {
         private readonly ILendingService _lending;

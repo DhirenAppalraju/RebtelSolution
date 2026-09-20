@@ -14,7 +14,7 @@ namespace Library.Api.Controllers
         }
     }
 
-    /// <summary>Shaped as a type rather than an anonymous object so the JSON is declared, not inferred.</summary>
+    /// <summary>A type, not anonymous: JSON declared, not inferred.</summary>
     public sealed class HealthResponse
     {
         public HealthResponse(string status)

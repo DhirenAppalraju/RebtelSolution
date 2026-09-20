@@ -12,8 +12,8 @@ using Proto = Library.Contracts.V1;
 namespace Library.FunctionalTests.Service
 {
     /// <summary>
-    /// The real service host over the in-memory transport, with the migration and fixture applied at
-    /// start-up. Drives a generated gRPC client, so a Q4 defect fails here as a Q4 test.
+    /// Real service host over the in-memory transport, migrated and seeded at start-up.
+    /// Drives a generated gRPC client, so a Q4 defect fails as a Q4 test.
     /// </summary>
     public sealed class ServiceHostFixture : WebApplicationFactory<ServiceHost>
     {
@@ -42,7 +42,7 @@ namespace Library.FunctionalTests.Service
         {
             builder.UseSetting("ConnectionStrings:Library", $"Data Source={_database}");
 
-            // ConfigureTestServices runs after the host's own registrations, so Replace, not TryAdd.
+            // Runs after the host's registrations, so Replace, not TryAdd.
             builder.ConfigureTestServices(services =>
                 services.Replace(ServiceDescriptor.Singleton<TimeProvider>(Clock)));
         }
@@ -70,7 +70,7 @@ namespace Library.FunctionalTests.Service
             File.Delete(_database);
         }
 
-        // TestServer answers HTTP/1.1 unless told otherwise; the gRPC client requires the versions to match.
+        // TestServer answers HTTP/1.1 by default; the gRPC client needs matching versions.
         private sealed class ResponseVersionHandler : DelegatingHandler
         {
             protected override async Task<HttpResponseMessage> SendAsync(

@@ -13,6 +13,7 @@ namespace Library.FunctionalTests.Service
             _fixture = fixture;
         }
 
+        private const int Hobbit = 1;
         private const int Neuromancer = 3;
         private const int Refactoring = 6;
 
@@ -58,7 +59,7 @@ namespace Library.FunctionalTests.Service
 
             try
             {
-                // Refactoring has exactly one copy.
+                // Refactoring has one copy.
                 var error = await Should.ThrowAsync<RpcException>(() => _fixture.Lending
                     .BorrowBookAsync(new Proto.BorrowBookRequest { BorrowerId = second.Id, BookId = Refactoring })
                     .ResponseAsync);
@@ -87,6 +88,21 @@ namespace Library.FunctionalTests.Service
                 .ResponseAsync);
 
             error.StatusCode.ShouldBe(StatusCode.FailedPrecondition);
+        }
+
+        [Fact]
+        public async Task GetBook_ExistingId_ReturnsTheTitle()
+        {
+            // The returning path: GetBook had only ever been called with a missing id.
+            // Reads a seeded title rather than adding one: this class shares a database and has no
+            // guaranteed order, so growing the catalogue would race ListBooks' exact count.
+            var book = await _fixture.Lending.GetBookAsync(new Proto.GetBookRequest { BookId = Hobbit });
+
+            book.Id.ShouldBe(Hobbit);
+            book.Title.ShouldBe("The Hobbit");
+            book.Author.ShouldBe("J. R. R. Tolkien");
+            book.PageCount.ShouldBe(300);
+            book.TotalCopies.ShouldBe(3);
         }
 
         [Fact]
@@ -122,8 +138,7 @@ namespace Library.FunctionalTests.Service
         [Fact]
         public async Task GetBorrower_RoundTripsWhatWasAdded()
         {
-            // This gRPC method had no test at any tier, so neither it nor the service method
-            // behind it had ever executed - the only trace of the route was an OpenAPI assertion.
+            // Untested at every tier: only an OpenAPI assertion mentioned the route.
             var added = await NewBorrower();
 
             var fetched = await _fixture.Lending.GetBorrowerAsync(

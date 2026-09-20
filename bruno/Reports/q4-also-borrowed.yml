@@ -1,0 +1,43 @@
+info:
+  name: Q4 Also borrowed
+  type: http
+  seq: 9
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/books/2/also-borrowed?limit=3"
+  params:
+    - name: limit
+      value: "3"
+      type: query
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.cohortSize
+      operator: eq
+      value: "5"
+    - expression: res.body.books[0].bookId
+      operator: eq
+      value: "1"
+    - expression: res.body.books[0].sharedBorrowers
+      operator: eq
+      value: "5"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  **Q4 — what else did the people who borrowed this book borrow.** The "customers who
+  bought this" shape.
+
+  Dune's cohort is 5 borrowers. The Hobbit comes first: 5 of those 5 also borrowed it.
+  Dune itself is excluded from its own results.
+
+  `cohortSize` is returned so a client can tell "5 of 5" from "5 of 500".

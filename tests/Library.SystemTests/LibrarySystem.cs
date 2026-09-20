@@ -10,8 +10,8 @@ using Microsoft.Extensions.Time.Testing;
 namespace Library.SystemTests
 {
     /// <summary>
-    /// Both hosts started for real on loopback sockets. This is the only tier that exercises h2c
-    /// between two Kestrel hosts, which no in-memory transport can.
+    /// Both hosts on real loopback sockets: the only tier that exercises h2c between two
+    /// Kestrel hosts.
     /// </summary>
     public sealed class LibrarySystem : IAsyncLifetime
     {
@@ -24,7 +24,7 @@ namespace Library.SystemTests
 
         public HttpClient Client { get; private set; } = null!;
 
-        /// <summary>The service's own h2c address, so a test can reach it without going through the API.</summary>
+        /// <summary>The service's h2c address, reachable without the API.</summary>
         public string ServiceAddress { get; private set; } = null!;
 
         public async Task InitializeAsync()
@@ -35,17 +35,17 @@ namespace Library.SystemTests
                     "--urls", "http://127.0.0.1:0",
                     "--ConnectionStrings:Library", $"Data Source={_database}",
                 },
-                // Build runs this before its own registrations, so the fake clock wins the TryAdd.
+                // Runs before Build's registrations, so the fake clock wins the TryAdd.
                 builder => builder.Services.TryAddSingleton<TimeProvider>(Clock));
 
             await _service.StartAsync();
 
-            // No protocol override is needed here: the service sets HTTP/2 in code.
+            // No protocol override: the service sets HTTP/2 in code.
             var grpcEndpoint = Address(_service);
             ServiceAddress = grpcEndpoint;
 
-            // The API keeps the real clock: its only use of one is the gRPC deadline, and a frozen
-            // clock would put every deadline in the past. Lending timestamps come from the service.
+            // API keeps the real clock: it only uses one for the gRPC deadline, and a frozen clock
+            // would put every deadline in the past. Timestamps come from the service.
             _api = ApiHost.Build(
                 new string[] { "--urls", "http://127.0.0.1:0", "--Library:GrpcEndpoint", grpcEndpoint });
 
@@ -87,8 +87,8 @@ namespace Library.SystemTests
     {
     }
 
-    // A second, independent pair of hosts and database. Journeys that write get their own world, so
-    // the fixture assertions above can stay exact.
+    // A second, independent pair of hosts and database: writing journeys get their own
+    // world, so the fixture assertions above stay exact.
     [CollectionDefinition(nameof(LibraryWriteCollection))]
     public sealed class LibraryWriteCollection : ICollectionFixture<LibrarySystem>
     {

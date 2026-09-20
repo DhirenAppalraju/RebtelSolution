@@ -6,7 +6,7 @@ namespace Library.Api
     {
         public const string SectionName = "Library";
 
-        /// <summary>Where the lending service lives. Echoed in the 503 detail so a reviewer sees what to start.</summary>
+        /// <summary>Lending service address; echoed in the 503 detail.</summary>
         [Required]
         public string GrpcEndpoint { get; set; } = "http://localhost:5210";
 

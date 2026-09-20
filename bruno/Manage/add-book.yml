@@ -1,0 +1,49 @@
+info:
+  name: Add a book
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/books"
+  body:
+    type: json
+    data: |-
+      {
+        "title": "The Dispossessed",
+        "author": "Ursula K. Le Guin",
+        "pageCount": 350,
+        "copies": 2
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.title
+      operator: eq
+      value: The Dispossessed
+    - expression: res.body.totalCopies
+      operator: eq
+      value: "2"
+    - expression: res.body.availableCopies
+      operator: eq
+      value: "2"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Adds a title and its copies in one call. Answers `201` with the new book and a
+  `Location` header.
+
+  `copies` is how many physical copies exist; the response echoes it back as
+  `totalCopies` with `availableCopies` equal to it, since none are out yet.
+
+  Re-running adds another distinct title with the same name — titles are not unique,
+  two copies of a book bought years apart are still two rows of stock.

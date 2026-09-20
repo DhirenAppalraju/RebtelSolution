@@ -1,0 +1,33 @@
+info:
+  name: All books with availability
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/books"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.books
+      operator: isNotEmpty
+    - expression: res.body.books[0].title
+      operator: eq
+      value: The Hobbit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Start here: every title with its total and available copies, and the ids the
+  other requests need.
+
+  Seeded catalogue is 10 titles. Thinking, Fast and Slow (id 8) has its only copy
+  on loan, so `availableCopies` is 0 — that is what makes the 409 in **Errors**.

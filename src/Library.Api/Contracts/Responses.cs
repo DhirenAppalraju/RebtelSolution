@@ -1,8 +1,7 @@
 namespace Library.Api.Contracts
 {
-    // Public JSON, deliberately separate from the generated protobuf messages: generated classes carry
-    // machinery that has no place in a public contract, `optional` fields become real nulls, and the two
-    // contracts can evolve independently.
+    // Public JSON, separate from generated protobuf: no generated machinery,
+    // real nulls, independent evolution.
 
     public sealed class BookResponse
     {

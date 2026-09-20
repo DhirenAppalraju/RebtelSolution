@@ -23,7 +23,7 @@ namespace Library.Domain.Entities
             get { return _copies; }
         }
 
-        /// <summary>Creates the book and its physical copies together; a title with no copy cannot be lent.</summary>
+        /// <summary>Book plus its copies; a title with no copy cannot be lent.</summary>
         public static Book Create(string title, string author, int pageCount, int copies)
         {
             var book = new Book
@@ -46,10 +46,8 @@ namespace Library.Domain.Entities
             return book;
         }
 
-        // An upper bound for the same reason `copies` has one, and for one more: reading pace sums
-        // pages across loans with checked int arithmetic, so an absurd page count is an
-        // OverflowException on a later, unrelated request. The longest book ever printed is
-        // comfortably under this.
+        // Upper bound: reading pace sums pages with checked arithmetic, so an absurd
+        // count overflows a later, unrelated request.
         private static int Pages(int pageCount)
         {
             if (pageCount < 1 || pageCount > 50000)

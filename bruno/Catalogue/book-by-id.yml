@@ -1,0 +1,29 @@
+info:
+  name: One book
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/books/1"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.title
+      operator: eq
+      value: The Hobbit
+    - expression: res.body.pageCount
+      operator: eq
+      value: "300"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: The Hobbit, 300 pages, 3 copies. Change the id in the URL for any other title.

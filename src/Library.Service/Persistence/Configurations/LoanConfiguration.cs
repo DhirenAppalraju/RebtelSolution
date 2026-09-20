@@ -18,22 +18,22 @@ namespace Library.Service.Persistence.Configurations
             builder.HasOne(l => l.Book).WithMany().HasForeignKey(l => l.BookId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(l => l.Borrower).WithMany().HasForeignKey(l => l.BorrowerId).OnDelete(DeleteBehavior.Restrict);
 
-            // One open loan per physical copy. Closes the last-copy race in the schema, not in an if.
+            // One open loan per copy: closes the last-copy race in the schema.
             builder.HasIndex(l => l.BookCopyId)
                    .IsUnique()
                    .HasFilter("\"ReturnedAt\" IS NULL")
                    .HasDatabaseName(OpenLoanPerCopyIndex);
 
-            // A member may not hold two copies of one title.
+            // No two copies of one title per member.
             builder.HasIndex(l => new { l.BorrowerId, l.BookId })
                    .IsUnique()
                    .HasFilter("\"ReturnedAt\" IS NULL")
                    .HasDatabaseName(OpenTitlePerBorrowerIndex);
 
-            // A loan is returned once: UPDATE ... WHERE Id = @id AND ReturnedAt IS NULL.
+            // Returned once: UPDATE ... WHERE ReturnedAt IS NULL.
             builder.Property(l => l.ReturnedAt).IsConcurrencyToken();
 
-            // Report access paths: grouped column first, range-scanned date last.
+            // Report access paths: grouped column first, date last.
             builder.HasIndex(l => new { l.BookId, l.BorrowedAt });
             builder.HasIndex(l => new { l.BorrowerId, l.BorrowedAt });
             builder.HasIndex(l => l.BorrowedAt);

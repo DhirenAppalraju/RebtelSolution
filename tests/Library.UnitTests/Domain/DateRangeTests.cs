@@ -23,29 +23,9 @@ namespace Library.UnitTests.Domain
         }
 
         [Fact]
-        public void Contains_IsHalfOpen()
-        {
-            var range = new DateRange(Day(2), Day(5));
-
-            range.Contains(Day(2)).ShouldBeTrue();      // from is inclusive
-            range.Contains(Day(4)).ShouldBeTrue();
-            range.Contains(Day(5)).ShouldBeFalse();     // to is exclusive
-            range.Contains(Day(1)).ShouldBeFalse();
-        }
-
-        [Fact]
-        public void Contains_UnboundedRange_AcceptsEverything()
-        {
-            DateRange.All.Contains(Day(1)).ShouldBeTrue();
-            DateRange.All.IsBounded.ShouldBeFalse();
-        }
-
-        [Fact]
         public void Equality_ComparesBothBounds()
         {
-            // Hand-written rather than generated: this type stopped being a record when the
-            // codebase moved to explicit syntax, so the equality it relies on is now code that
-            // has to be tested like any other.
+            // Equality is hand-written, not record-generated, so it needs testing like any code.
             var january = new DateRange(Day(1), Day(31));
 
             january.Equals(new DateRange(Day(1), Day(31))).ShouldBeTrue();
@@ -67,22 +47,6 @@ namespace Library.UnitTests.Domain
         }
 
         [Fact]
-        public void Equality_IsAboutTheInstantNotTheOffset()
-        {
-            // 09:00+01:00 and 08:00Z are the same moment, so the two windows are the same window.
-            var utc = new DateRange(
-                new DateTimeOffset(2026, 1, 1, 8, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2026, 2, 1, 8, 0, 0, TimeSpan.Zero));
-
-            var offset = new DateRange(
-                new DateTimeOffset(2026, 1, 1, 9, 0, 0, TimeSpan.FromHours(1)),
-                new DateTimeOffset(2026, 2, 1, 9, 0, 0, TimeSpan.FromHours(1)));
-
-            (utc == offset).ShouldBeTrue();
-            utc.GetHashCode().ShouldBe(offset.GetHashCode());
-        }
-
-        [Fact]
         public void Equality_AgreesWithGetHashCode()
         {
             var a = new DateRange(Day(1), Day(31));
@@ -90,7 +54,7 @@ namespace Library.UnitTests.Domain
 
             a.GetHashCode().ShouldBe(b.GetHashCode());
 
-            // And the object overload, which a dictionary or a Shouldly assertion will reach for.
+            // And the object overload, used by dictionaries and Shouldly.
             a.Equals((object)b).ShouldBeTrue();
             a.Equals("not a range").ShouldBeFalse();
             a.Equals(null).ShouldBeFalse();

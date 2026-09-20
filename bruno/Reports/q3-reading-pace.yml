@@ -1,0 +1,37 @@
+info:
+  name: Q3 Reading pace
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/borrowers/3/reading-pace"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.pagesPerDay
+      operator: eq
+      value: "115"
+    - expression: res.body.totalPages
+      operator: eq
+      value: "1150"
+    - expression: res.body.completedLoans
+      operator: eq
+      value: "3"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  **Q3 — how fast a borrower reads, in pages per day.** Only returned loans count;
+  a book still out has no reading time to measure yet.
+
+  Clara Diaz: 1150 pages over 10 days is 115 pages per day. The per-loan breakdown
+  shows the three loans behind it.
