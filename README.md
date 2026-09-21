@@ -6,12 +6,22 @@ and a service layer that talk to each other over gRPC.
 ## Quick start
 
 **.NET 10 SDK** is the only prerequisite — no Docker, no database to install, no certificates to trust.
+Everything restores on its own, so a fresh clone needs no step before these.
 
 ```bash
-dotnet test                                # 272 tests, under a minute from cold, no setup
+dotnet test                                # 272 tests, ~20s warm and under a minute from cold
+```
+
+Two hosts, one terminal each, started in either order:
+
+```bash
 dotnet run --project src/Library.Service   # terminal 1 — gRPC on http://localhost:5210
 dotnet run --project src/Library.Api       # terminal 2 — HTTP on http://localhost:5100
+```
 
+Then, from a third, the four questions and the warm-ups:
+
+```bash
 curl "http://localhost:5100/api/books/most-borrowed?limit=5"                  # Q1
 curl "http://localhost:5100/api/borrowers/top?from=2026-01-01&to=2026-04-01"  # Q2
 curl "http://localhost:5100/api/borrowers/3/reading-pace"                     # Q3
@@ -19,9 +29,13 @@ curl "http://localhost:5100/api/books/2/also-borrowed?limit=3"                # 
 dotnet run --project src/Library.Warmups                                      # warm-ups 1-4
 ```
 
-SQLite is created and seeded on first run. API reference at <http://localhost:5100/docs>, worked calls
-in [`requests.http`](requests.http). Start only the API and every `/api` call answers 503 with a problem
-document naming the endpoint it tried and the command that starts the other host.
+SQLite is created and seeded on first run. API reference at <http://localhost:5100/docs>; the same
+calls worked through in [`requests.http`](requests.http), and again with assertions on the expected
+answers in the Bruno collection under [`bruno/`](bruno) — open that folder in Bruno, with no
+environment to select. Start only the API and every `/api` call answers 503 with a problem document
+naming the endpoint it tried and the command that starts the other host. The writes among those calls
+mutate the seeded data: to get back to a clean slate, stop the service, delete
+`src/Library.Service/library.db*`, and start it again.
 
 ## Architecture
 
@@ -88,8 +102,20 @@ a serialisable transaction per borrow, and pinned by a characterisation test.
 
 `dotnet test` runs 272 tests with no setup: unit (93), integration on real SQLite built by the migration
 (49), functional over the gRPC and HTTP contracts (87), system over both hosts on real sockets (16), and
-warm-ups (27). Line coverage of `src/` is **97.7%**, branch 94.8%, excluding migrations and generated
-code; [`docs/TESTING.md`](docs/TESTING.md) covers how each tier is wired and which tests to open first.
+warm-ups (27). No fixed ports and no host to start first — every tier brings up what it needs, and CI
+runs the same command in Release.
+
+```bash
+dotnet test tests/Library.UnitTests                         # one tier
+dotnet test --filter "FullyQualifiedName~LastCopyRace"      # one test
+dotnet test --collect:"XPlat Code Coverage" --settings coverage.runsettings
+```
+
+Line coverage of `src/` is **97.7%**, branch 94.8%, excluding migrations and generated code. The 31
+uncovered lines are all composition or design-time: the warm-ups' console `Main`, two private
+constructors, `DesignTimeDbContextFactory` (only `dotnet ef` calls it), an unused test hook in
+`ApiHost`, and the defensive fall-throughs in `DomainExceptionInterceptor` and `DatabaseErrors`.
+[`docs/TESTING.md`](docs/TESTING.md) covers how each tier is wired and which tests to open first.
 
 ## Decisions and scope
 
